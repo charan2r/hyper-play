@@ -1,0 +1,398 @@
+/* ===== JERSEY CAROUSEL CONTAINER ===== */
+.jersey-carousel-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  perspective: 1500px;
+}
+
+@media (min-width: 640px) {
+  .jersey-carousel-container {
+    width: 250px;
+    height: 250px;
+    perspective: 2000px;
+  }
+}
+
+@media (min-width: 768px) {
+  .jersey-carousel-container {
+    width: 300px;
+    height: 300px;
+    perspective: 2500px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .jersey-carousel-container {
+    width: 350px;
+    height: 350px;
+    perspective: 3000px;
+  }
+}
+
+/* ===== JERSEY CAROUSEL ===== */
+.jersey-carousel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  --jersey-carousel-radius: 180px;
+}
+
+@media (min-width: 640px) {
+  .jersey-carousel {
+    --jersey-carousel-radius: 220px;
+  }
+}
+
+@media (min-width: 768px) {
+  .jersey-carousel {
+    --jersey-carousel-radius: 280px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .jersey-carousel {
+    --jersey-carousel-radius: 350px;
+  }
+}
+
+/* ===== JERSEY CARDS ===== */
+.jersey-card {
+  position: absolute;
+  width: 120px;
+  height: 160px;
+  transform-style: preserve-3d;
+  transform-origin: center center;
+  left: 50%;
+  top: 50%;
+  margin-left: -60px;
+  margin-top: -80px;
+}
+
+@media (min-width: 640px) {
+  .jersey-card {
+    width: 140px;
+    height: 180px;
+    margin-left: -70px;
+    margin-top: -90px;
+  }
+}
+
+@media (min-width: 768px) {
+  .jersey-card {
+    width: 150px;
+    height: 200px;
+    margin-left: -75px;
+    margin-top: -100px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .jersey-card {
+    width: 160px;
+    height: 220px;
+    margin-left: -80px;
+    margin-top: -110px;
+  }
+}
+
+/* ===== JERSEY CARD CONTENT ===== */
+.jersey-card-content {
+  position: absolute;
+  width: 180px;
+  height: 240px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  left: 50%;
+  top: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+@media (min-width: 640px) {
+  .jersey-card-content {
+    width: 200px;
+    height: 280px;
+    padding: 20px;
+  }
+}
+
+@media (min-width: 768px) {
+  .jersey-card-content {
+    width: 220px;
+    height: 320px;
+    padding: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .jersey-card-content {
+    width: 250px;
+    height: 350px;
+    padding: 28px;
+  }
+}
+
+/* ===== JERSEY CONTENT ELEMENTS ===== */
+.jersey-image {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+}
+
+.jersey-image:hover {
+  transform: scale(1.05);
+}
+
+@media (min-width: 640px) {
+  .jersey-image {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .jersey-image {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .jersey-image {
+    width: 140px;
+    height: 140px;
+    margin-bottom: 24px;
+  }
+}
+
+.jersey-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-align: center;
+  color: #1f2937;
+  font-family: "Inter", sans-serif;
+  letter-spacing: 0.5px;
+}
+
+@media (min-width: 640px) {
+  .jersey-title {
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .jersey-title {
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+}
+
+.customize-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.customize-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.customize-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+@media (min-width: 640px) {
+  .customize-btn {
+    font-size: 13px;
+    padding: 10px 24px;
+  }
+}
+
+@media (min-width: 768px) {
+  .customize-btn {
+    font-size: 14px;
+    padding: 12px 28px;
+  }
+}
+
+/* ===== JERSEY DOTS INDICATOR ===== */
+.jersey-dots-container {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 20;
+}
+
+.jersey-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.jersey-dot:hover {
+  background: rgba(255, 255, 255, 0.7);
+  transform: scale(1.2);
+}
+
+.jersey-dot.active {
+  background: #3b82f6;
+  transform: scale(1.3);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+.jersey-dot:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+@media (min-width: 640px) {
+  .jersey-dots-container {
+    bottom: 30px;
+    gap: 12px;
+  }
+
+  .jersey-dot {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/* ===== INFO BADGE ===== */
+.info-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 8px 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.sport-name,
+.fit-name {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+}
+
+.sport-name {
+  color: #3b82f6;
+}
+
+.fit-name {
+  color: #10b981;
+}
+
+@media (min-width: 640px) {
+  .info-badge {
+    padding: 10px 20px;
+  }
+
+  .sport-name,
+  .fit-name {
+    font-size: 14px;
+  }
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes floatText {
+  from {
+    transform: perspective(600px) rotateX(10deg) translateY(0px);
+  }
+  to {
+    transform: perspective(600px) rotateX(10deg) translateY(-10px);
+  }
+}
+
+.animate-heading3D {
+  animation: floatText 4s ease-in-out infinite alternate;
+  font-family: "Michroma", sans-serif;
+}
+
+@keyframes cardFloat {
+  0% {
+    transform: translateX(-50%) translateY(-50%) translateZ(0px);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-50%) translateZ(10px);
+  }
+  100% {
+    transform: translateX(-50%) translateY(-50%) translateZ(0px);
+  }
+}
+
+.jersey-card-content:hover {
+  animation: cardFloat 2s ease-in-out infinite;
+}
+
+/* ===== PERFORMANCE OPTIMIZATIONS ===== */
+.jersey-carousel,
+.jersey-card,
+.jersey-card-content {
+  will-change: transform;
+}
+
+.jersey-card-content {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* ===== LOADING STATE ===== */
+/* .jersey-card-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 2s infinite;
+  border-radius: 12px;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+} */
