@@ -313,38 +313,36 @@ const HomePage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
-            {/* Latest Products */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {loading
-                ? [1, 2, 3, 4].map((item) => (
-                    <div
-                      key={item}
-                      className="bg-gray-100 rounded-lg p-8 text-center animate-pulse"
-                    >
-                      <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
-                    </div>
-                  ))
-                : latestProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      showBadge={false}
-                    />
-                  ))}
-            </div>
+          {/* Latest Products Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+            {loading
+              ? [1, 2, 3, 4].map((item) => (
+                  <div
+                    key={item}
+                    className="bg-gray-100 rounded-lg p-8 text-center animate-pulse"
+                  >
+                    <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                  </div>
+                ))
+              : latestProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    showBadge={false}
+                  />
+                ))}
+          </div>
 
-            {/* View All Products Button */}
-            <div className="text-center mt-12">
-              <button
-                onClick={() => (window.location.href = "/products")}
-                className="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 duration-300"
-              >
-                View All Products →
-              </button>
-            </div>
+          {/* View All Products Button */}
+          <div className="text-center mt-12">
+            <button
+              onClick={() => (window.location.href = "/products")}
+              className="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 duration-300"
+            >
+              View All Products →
+            </button>
           </div>
         </div>
       </section>
@@ -418,42 +416,40 @@ const HomePage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
-            {/* Best Sellers Products */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {loading
-                ? [1, 2, 3, 4].map((item) => (
-                    <div
-                      key={item}
-                      className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse"
-                    >
-                      <div className="h-48 bg-gray-200"></div>
-                      <div className="p-4 text-center">
-                        <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
-                      </div>
+          {/* Best Sellers Products Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+            {loading
+              ? [1, 2, 3, 4].map((item) => (
+                  <div
+                    key={item}
+                    className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse"
+                  >
+                    <div className="h-48 bg-gray-200"></div>
+                    <div className="p-4 text-center">
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
                     </div>
-                  ))
-                : bestSellersDisplay.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      showBadge={true}
-                    />
-                  ))}
-            </div>
+                  </div>
+                ))
+              : bestSellersDisplay.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    showBadge={true}
+                  />
+                ))}
+          </div>
 
-            {/* View All Products Button */}
-            <div className="text-center mt-12">
-              <button
-                onClick={() =>
-                  (window.location.href = "/products?category=Bestsellers")
-                }
-                className="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 duration-300"
-              >
-                View All Best Sellers →
-              </button>
-            </div>
+          {/* View All Best Sellers Button */}
+          <div className="text-center mt-12">
+            <button
+              onClick={() =>
+                (window.location.href = "/products?category=Bestsellers")
+              }
+              className="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 duration-300"
+            >
+              View All Best Sellers →
+            </button>
           </div>
         </div>
       </section>
