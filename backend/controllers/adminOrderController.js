@@ -1,5 +1,6 @@
 const pool = require("../db");
 
+// Get all orders
 exports.getAllOrders = async (req, res) => {
   try {
     const orders = await pool.query(

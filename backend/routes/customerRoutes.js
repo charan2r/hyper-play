@@ -4,7 +4,8 @@ const customerController = require("../controllers/customerController");
 const { verifyToken, requireRole } = require("../middleware/auth");
 
 router.get("/products", customerController.getProducts);
-router.post(
+
+/*router.post(
   "/design",
   verifyToken,
   requireRole("customer"),
@@ -15,13 +16,15 @@ router.get(
   verifyToken,
   requireRole("customer"),
   customerController.getDesign
-);
+);*/
+
 router.get(
   "/cart",
   verifyToken,
   requireRole("customer"),
   customerController.getCart
 );
+
 router.post(
   "/cart",
   verifyToken,

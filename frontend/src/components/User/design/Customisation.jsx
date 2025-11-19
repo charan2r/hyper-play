@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import JerseyModel from "./JerseyModel";
 import { OrbitControls } from "@react-three/drei";
 import SidebarPanel from "./SidebarPanel";
-import MeshLayerMapper from "./mapFabricLayersToMeshNames";
+import MeshLayerMapper from "../mapFabricLayersToMeshNames";
 import DesignLoader from "./DesignLoader";
 
 export default function Customisation() {

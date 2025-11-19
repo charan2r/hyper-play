@@ -1,5 +1,6 @@
 const pool = require("../db");
 
+// get all products
 exports.getAllProducts = async (req, res) => {
   try {
     const results = await pool.query(
@@ -11,6 +12,7 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
+// get one product
 exports.getProductById = async (req, res) => {
   const { id } = req.params;
   try {
@@ -26,6 +28,7 @@ exports.getProductById = async (req, res) => {
   }
 };
 
+// add product
 exports.addProduct = async (req, res) => {
   const {
     name,
@@ -52,6 +55,7 @@ exports.addProduct = async (req, res) => {
   }
 };
 
+// update product
 exports.updateProduct = async (req, res) => {
   const { id } = req.params;
   const { name, description, price, category, sport, status, stock } = req.body;
@@ -92,6 +96,8 @@ exports.updateProduct = async (req, res) => {
     res.status(500).json({ error: "Failed to update product" });
   }
 };
+
+// delete product
 exports.deleteProduct = async (req, res) => {
   const { id } = req.params;
   try {

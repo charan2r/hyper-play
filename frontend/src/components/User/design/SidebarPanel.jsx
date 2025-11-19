@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
-// Modified SidebarPanel.jsx - Submit Order navigates to Order Form Page
+
 import { SketchPicker } from "react-color";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // ⭐ Add this
+import { useNavigate } from "react-router-dom";
 import DesignEditor from "./DesignEditor";
 import DesignLoader from "./DesignLoader";
 

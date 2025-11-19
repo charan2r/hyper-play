@@ -13,7 +13,7 @@ exports.getProducts = async (req, res) => {
 };
 
 // customer adding designs
-exports.addDesign = async (req, res) => {
+/*exports.addDesign = async (req, res) => {
   const { design_data } = req.body;
   const customer_id = req.user.id;
 
@@ -66,7 +66,7 @@ exports.getDesign = async (req, res) => {
     console.error("Error fetching designs:", error);
     res.status(500).json({ error: "Failed to get design" });
   }
-};
+};*/
 
 // view cart items
 exports.getCart = async (req, res) => {
@@ -81,22 +81,17 @@ exports.getCart = async (req, res) => {
       SELECT
         ci.id,
         ci.product_id,          
-        ci.quantity,
-        ci.design_id,
-        ci.sizes,
-        ci.customer_note,
+        ci.quantity,   
         p.name        AS product_name,
         p.price       AS product_price,
         p.description AS product_description,
-        p.image       AS product_image,       
-        d.design_data AS design_data,
+        p.image       AS product_image,            
         CASE 
           WHEN p.price IS NOT NULL THEN (p.price * ci.quantity)
           ELSE (50.00 * ci.quantity)
         END AS line_total
       FROM cartitem ci
       LEFT JOIN product p ON ci.product_id = p.id
-      LEFT JOIN design d ON ci.design_id = d.id
       WHERE ci.customer_id = $1
       ORDER BY ci.id ASC
       `,
@@ -107,14 +102,10 @@ exports.getCart = async (req, res) => {
       id: r.id,
       product_id: r.product_id,
       quantity: Number(r.quantity),
-      design_id: r.design_id,
-      sizes: r.sizes,
-      customer_note: r.customer_note,
       description: r.product_description || "Custom Sports Jersey",
       name: r.product_name || "Custom Design Jersey",
       price: r.product_price !== null ? parseFloat(r.product_price) : 1500.0,
       image: r.product_image,
-      design_data: r.design_data,
       line_total: r.line_total !== null ? parseFloat(r.line_total) : 0,
     }));
 
@@ -128,7 +119,7 @@ exports.getCart = async (req, res) => {
 // adding to cart
 exports.addToCart = async (req, res) => {
   try {
-    const { product_id, quantity, design_id, sizes, customer_note } = req.body;
+    const { product_id, quantity } = req.body;
     const customer_id = req.user.id;
 
     if (!customer_id) {
@@ -136,9 +127,9 @@ exports.addToCart = async (req, res) => {
     }
 
     const item = await pool.query(
-      `INSERT INTO cartitem (product_id, quantity, customer_id, design_id, sizes, customer_note)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [product_id, quantity, customer_id, design_id, sizes, customer_note]
+      `INSERT INTO cartitem (product_id, quantity)
+       VALUES ($1, $2) RETURNING *`,
+      [product_id, quantity, customer_id]
     );
 
     res.status(201).json(item.rows[0]);

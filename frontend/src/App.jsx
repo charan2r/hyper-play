@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Customisation from "./components/User/Customisation";
+//import Customisation from "./components/User/Customisation";
 import HomePage from "./components/User/HomePage";
 import ProductsPage from "./components/User/ProductsPage";
 import ProductDetailsPage from "./components/User/ProductDetailsPage";
 import SportsPage from "./components/User/SportsPage";
 import AboutPage from "./components/User/AboutPage";
 import SelectSportPage from "./components/User/SelectSportPage";
-import CustomDesignPage from './components/User/CustomDesignPage';
+//import CustomDesignPage from './components/User/CustomDesignPage';
 import OrderFormPage from "./components/User/OrderFormPage";
 import CartPage from "./components/User/CartPage";
 import CheckoutPage from "./components/User/CheckoutPage";
@@ -30,8 +30,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/select-sport" element={<SelectSportPage />} />
-        <Route path="/custom-design" element={<CustomDesignPage />} />
-        <Route path="/design-editor" element={<Customisation />} />
+
         <Route path="/order-form" element={<OrderFormPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />

@@ -89,10 +89,7 @@ const Footer = () => {
 
         {/* Bottom Section */}
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-          <p className="text-gray-400">
-            © 2025 Athletic Fit (Pvt) Ltd | Designed by Quantum Leap Solution
-            (Pvt) Ltd
-          </p>
+          <p className="text-gray-400">© 2025 Hyper Play (Pvt) Ltd</p>
         </div>
       </div>
     </footer>
