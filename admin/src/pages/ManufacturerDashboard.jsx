@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Sidebar from "../components/ManufacturerSidebar";
 import { Menu } from "lucide-react";
-import Orders from "./manufacturerLayouts/orders";
-import Dashboard from "./manufacturerLayouts/dashboard";
+import Orders from "./manufacturer/orders";
+import Dashboard from "./manufacturer/dashboard";
 
 const ManufacturerDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

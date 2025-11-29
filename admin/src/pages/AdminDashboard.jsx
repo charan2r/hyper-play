@@ -1,13 +1,11 @@
 import { useState } from "react";
-import Settings from "../pages/dashboardLayouts/setting";
+import SettingsPage from "./admin/setting";
 import Sidebar from "../components/Sidebar";
 import { Menu } from "lucide-react";
-import Customers from "./dashboardLayouts/customers";
-import AnalyticsDashboard from "./dashboardLayouts/analytics";
-import Products from "./dashboardLayouts/products";
-import Orders from "./dashboardLayouts/orders";
-import Inventory from "./dashboardLayouts/inventory";
-import Dashboard from "./dashboardLayouts/dashboard";
+import Customers from "./admin/customers";
+import Products from "./admin/products";
+import Orders from "./admin/orders";
+import Dashboard from "./admin/dashboard";
 
 const AdminDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -38,7 +36,7 @@ const AdminDashboard = () => {
         return <Customers />;
 
       case "Settings":
-        return <Settings />;
+        return <SettingsPage />;
 
       default:
         return (
