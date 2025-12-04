@@ -147,12 +147,7 @@ const Navbar = () => {
             >
               About us
             </a>
-            <a
-              href="/faq"
-              className="text-gray-900 hover:text-green-600 px-3 py-2 text-lg font-medium transition-colors"
-            >
-              Faq
-            </a>
+
             {/* Search Icon */}
             <button className="text-gray-900 hover:text-green-600 p-2 transition-colors">
               <Search className="h-6 w-6" />

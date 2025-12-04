@@ -2,6 +2,7 @@ import { useState } from "react";
 import SettingsPage from "./admin/setting";
 import Sidebar from "../components/Sidebar";
 import { Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Customers from "./admin/customers";
 import Products from "./admin/products";
 import Orders from "./admin/orders";
@@ -10,6 +11,7 @@ import Dashboard from "./admin/dashboard";
 const AdminDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState("Dashboard");
+  const navigate = useNavigate();
 
   const handleSidebarItemClick = (item) => {
     setActivePage(item.label);
@@ -19,6 +21,12 @@ const AdminDashboard = () => {
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
+    navigate("/");
   };
 
   const renderPageContent = () => {
@@ -62,6 +70,7 @@ const AdminDashboard = () => {
         onClose={() => setIsSidebarOpen(false)}
         activeItem={activePage}
         onItemClick={handleSidebarItemClick}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}

@@ -127,9 +127,9 @@ exports.addToCart = async (req, res) => {
     }
 
     const item = await pool.query(
-      `INSERT INTO cartitem (product_id, quantity)
-       VALUES ($1, $2) RETURNING *`,
-      [product_id, quantity, customer_id]
+      `INSERT INTO cartitem (customer_id, product_id, quantity)
+       VALUES ($1, $2, $3) RETURNING *`,
+      [customer_id, product_id, quantity]
     );
 
     res.status(201).json(item.rows[0]);

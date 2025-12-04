@@ -1,12 +1,14 @@
 import { useState } from "react";
 import Sidebar from "../components/ManufacturerSidebar";
 import { Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Orders from "./manufacturer/orders";
 import Dashboard from "./manufacturer/dashboard";
 
 const ManufacturerDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState("Dashboard");
+  const navigate = useNavigate();
 
   const handleSidebarItemClick = (item) => {
     setActivePage(item.label);
@@ -16,6 +18,13 @@ const ManufacturerDashboard = () => {
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
+    localStorage.removeItem("token");
+    navigate("/");
   };
 
   const renderPageContent = () => {
@@ -50,6 +59,7 @@ const ManufacturerDashboard = () => {
         onClose={() => setIsSidebarOpen(false)}
         activeItem={activePage}
         onItemClick={handleSidebarItemClick}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
