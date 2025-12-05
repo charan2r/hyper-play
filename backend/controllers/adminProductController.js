@@ -39,7 +39,7 @@ exports.addProduct = async (req, res) => {
     status = "active",
     stock = 0,
   } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : null;
+  const image = req.file ? req.file.location : null;
 
   try {
     const product = await pool.query(

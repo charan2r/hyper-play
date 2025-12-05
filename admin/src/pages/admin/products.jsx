@@ -426,9 +426,13 @@ const Products = () => {
                           <td className="py-3 px-4">
                             {product.image ? (
                               <img
-                                src={`http://localhost:5000${product.image}`}
+                                src={product.image}
                                 alt={product.name}
                                 className="h-12 w-12 object-cover rounded-md border"
+                                onError={(e) => {
+                                  e.target.src =
+                                    "https://via.placeholder.com/48?text=No+Image";
+                                }}
                               />
                             ) : (
                               <span className="text-gray-400 text-sm">

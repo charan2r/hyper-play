@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 
 const Categories = [
@@ -31,17 +30,6 @@ const AddProduct = ({ onClose, onSave }) => {
     e.preventDefault();
     const form = e.target;
     const formData = new FormData(form);
-
-    const newProduct = {
-      name: form.name.value,
-      description: form.description.value,
-      price: parseFloat(form.price.value),
-      category: form.category.value,
-      sport: form.sport.value,
-      status: form.status.value,
-      stock: parseInt(form.stock.value),
-      image: form.image.value,
-    };
 
     try {
       const response = await fetch(

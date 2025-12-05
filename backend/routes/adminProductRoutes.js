@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const productController = require("../controllers/adminProductController");
-const upload = require("../middleware/upload");
+const upload = require("../utils/upload");
 
 router.get("/products", productController.getAllProducts);
 router.get("/products/:id", productController.getProductById);
