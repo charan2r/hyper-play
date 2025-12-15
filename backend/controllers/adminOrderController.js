@@ -9,7 +9,7 @@ exports.getAllOrders = async (req, res) => {
         o.total_amount,
         o.order_date,
         o.status,
-        o.payment_intent_id,
+        o.payment_status,
         o.manufacturer_id,
         o.customer_id,
         m.name as manufacturer_name
@@ -32,9 +32,6 @@ exports.getAllOrders = async (req, res) => {
           oi.product_id,
           oi.quantity,
           oi.price,
-          oi.design_id,
-          oi.sizes,
-          oi.customer_note,
           p.name as product_name
          FROM order_items oi
          LEFT JOIN product p ON oi.product_id = p.id
@@ -56,21 +53,13 @@ exports.getAllOrders = async (req, res) => {
           product_name: item.product_name,
           quantity: item.quantity,
           price: item.price,
-          design_id: item.design_id,
-          sizes: item.sizes,
-          customer_note: item.customer_note,
         })),
       };
     });
 
-    const ordersWithPaymentStatus = ordersWithItems.map((order) => ({
-      ...order,
-      payment_status: order.payment_intent_id ? "Paid" : "Pending",
-    }));
-
     res.json({
       success: true,
-      orders: ordersWithPaymentStatus,
+      orders: ordersWithItems,
     });
   } catch (error) {
     console.error("Error fetching orders for admin:", error);

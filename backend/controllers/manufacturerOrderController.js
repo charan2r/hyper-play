@@ -13,7 +13,7 @@ exports.getAssignedOrders = async (req, res) => {
     o.total_amount,
     o.status,
     o.order_date,
-    o.payment_intent_id,
+    o.payment_status,
     o.manufacturer_id,
     m.name as manufacturer_name,
     m.email as manufacturer_email,
@@ -27,30 +27,21 @@ exports.getAssignedOrders = async (req, res) => {
           'product_id', oi.product_id,
           'product_name', p.name,
           'quantity', oi.quantity,
-          'price', oi.price,
-          'design_id', oi.design_id,
-          'sizes', oi.sizes,
-          'customer_note', oi.customer_note,
-          'design_data', d.design_data
+          'price', oi.price
         )
       ) FILTER (WHERE oi.id IS NOT NULL), 
       '[]'
     ) as products,
 
-    
-    CASE WHEN COUNT(d.id) > 0 THEN true ELSE false END as assets_available,
-    COALESCE(JSON_AGG(d.design_data) FILTER (WHERE d.id IS NOT NULL), '[]') as asset_files,
-    COUNT(d.id) as template_count
 
     FROM orders o 
     LEFT JOIN manufacturer m ON o.manufacturer_id = m.id
     LEFT JOIN order_items oi ON o.id = oi.order_id
-    LEFT JOIN product p ON oi.product_id = p.id
-    LEFT JOIN design d ON d.id = oi.design_id   
+    LEFT JOIN product p ON oi.product_id = p.id  
 
     WHERE o.manufacturer_id = $1
     GROUP BY o.id, o.customer_id, o.total_amount, o.status, o.order_date, 
-            o.payment_intent_id, o.manufacturer_id, m.name, m.email
+            o.payment_status, o.manufacturer_id, m.name, m.email
     ORDER BY o.order_date DESC
     `,
       [manufacturerId]
@@ -78,10 +69,9 @@ exports.getDesignPDF = async (req, res) => {
 
     const itemsRes = await pool.query(
       `
-      SELECT oi.*, p.name AS product_name, d.design_data
+      SELECT oi.*, p.name AS product_name
       FROM order_items oi
       JOIN product p ON oi.product_id = p.id
-      LEFT JOIN design d ON d.id = oi.design_id
       WHERE oi.order_id = $1
       `,
       [id]
