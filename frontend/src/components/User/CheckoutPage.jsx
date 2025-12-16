@@ -52,7 +52,70 @@ export default function CheckoutPage() {
       return;
     }
 
-    setIsProcessing(true);
+    try {
+      setIsProcessing(true);
+
+      const token = localStorage.getItem("customerToken");
+      if (!token) {
+        alert("Please login to continue");
+        navigate("/login");
+        return;
+      }
+
+      const response = await fetch("http://localhost:5000/api/order/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          cartItems: cartItems.map((item) => ({
+            product_id: item.product_id || item.id,
+            quantity: item.quantity,
+          })),
+          customerInfo: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            zipCode: formData.zipCode,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        alert("Checkout failed");
+        setIsProcessing(false);
+        return;
+      }
+
+      submitPayHereForm(data.payHereData);
+    } catch (err) {
+      console.error("Checkout error", err);
+      alert("Something went wrong");
+      setIsProcessing(false);
+    }
+  };
+
+  const submitPayHereForm = (payHereData) => {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "https://sandbox.payhere.lk/pay/checkout";
+
+    Object.entries(payHereData).forEach(([key, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
   };
 
   return (
@@ -219,7 +282,7 @@ export default function CheckoutPage() {
                       Processing...
                     </div>
                   ) : (
-                    "Proceed to Payment"
+                    "Pay Now"
                   )}
                 </button>
               </form>

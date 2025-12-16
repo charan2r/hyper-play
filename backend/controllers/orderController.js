@@ -1,21 +1,32 @@
 const pool = require("../db");
 const crypto = require("crypto");
 
-function generateHash(merchantId, orderId, amount, merchantSecret) {
+function generateHash(merchantId, orderId, amount, currency, merchantSecret) {
+  const amountFormatted = parseFloat(amount).toFixed(2);
+  const hashString =
+    merchantId + orderId + amountFormatted + currency + merchantSecret;
   return crypto
     .createHash("md5")
-    .update(merchantId + orderId + amount.toFixed(2) + merchantSecret)
+    .update(hashString)
     .digest("hex")
-    .toUppercase();
+    .toUpperCase();
 }
 
-// Create order from cart
+// Create order and pay
 exports.createOrder = async (req, res) => {
   try {
-    const { customer_id, cartItems } = req.customerId;
+    const customer_id = req.user.id;
+    const { cartItems, customerInfo } = req.body;
 
     if (!cartItems || cartItems.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
+    }
+
+    // Validate customer info for payment
+    if (!customerInfo || !customerInfo.firstName || !customerInfo.email) {
+      return res
+        .status(400)
+        .json({ message: "Customer information is required" });
     }
 
     // Create order
@@ -55,7 +66,15 @@ exports.createOrder = async (req, res) => {
     // prepare PayHere payload
     const merchantId = process.env.PAYHERE_MERCHANT_ID;
     const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET;
-    const hash = generateHash(merchantId, orderId, total, merchantSecret);
+    const currency = "LKR";
+
+    const hash = generateHash(
+      merchantId,
+      orderId,
+      total,
+      currency,
+      merchantSecret
+    );
 
     const payHereData = {
       merchant_id: merchantId,
@@ -66,11 +85,16 @@ exports.createOrder = async (req, res) => {
       items: "Order Payment",
       amount: total.toFixed(2),
       currency: "LKR",
+      first_name: customerInfo.firstName,
+      last_name: customerInfo.lastName || "",
+      email: customerInfo.email,
+      phone: customerInfo.phone || "",
+      address: customerInfo.address || "",
+      city: customerInfo.city || "",
+      country: "Sri Lanka",
       hash,
+      custom_1: "hyper-play",
     };
-
-    // Clear cart after successful order creation
-    await pool.query("DELETE FROM cartitem WHERE cart_id = $1", [cart_id]);
 
     res.json({
       success: true,
@@ -87,7 +111,7 @@ exports.createOrder = async (req, res) => {
 // Get customer orders
 exports.getCustomerOrders = async (req, res) => {
   try {
-    const customer_id = req.customerId;
+    const customer_id = req.user.id;
 
     const orders = await pool.query(
       `SELECT o.*, 
@@ -123,7 +147,7 @@ exports.getCustomerOrders = async (req, res) => {
 exports.getOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
-    const customer_id = req.customerId;
+    const customer_id = req.user.id;
 
     const order = await pool.query(
       `SELECT o.*, 

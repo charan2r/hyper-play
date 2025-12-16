@@ -38,8 +38,6 @@ export default function CartPage() {
             console.log(` Cart Item ${index + 1}:`, {
               id: item.id,
               name: item.name,
-              design_id: item.design_id,
-              design_data: item.design_data,
               price: item.price,
               quantity: item.quantity,
             });
@@ -166,38 +164,9 @@ export default function CartPage() {
                     className="bg-white shadow-lg rounded-lg p-6"
                   >
                     <div className="flex flex-col md:flex-row gap-6">
-                      {/* Design Image */}
-                      {item.design_data && (
-                        <div className="flex-shrink-0">
-                          <div className="w-32 h-32 bg-gray-50 rounded-lg p-2 border">
-                            <img
-                              src={
-                                typeof item.design_data === "string"
-                                  ? item.design_data
-                                  : item.design_data?.imageURL ||
-                                    item.design_data?.preview ||
-                                    "/assets/logo.png"
-                              }
-                              alt="Custom Design"
-                              className="w-full h-full object-contain"
-                              onError={(e) => {
-                                console.error(
-                                  "Design image failed to load:",
-                                  item.design_data
-                                );
-                                e.target.src = "/assets/logo.png";
-                              }}
-                            />
-                          </div>
-                          <p className="text-xs text-gray-500 text-center mt-1">
-                            Custom Design
-                          </p>
-                        </div>
-                      )}
-
                       <div className="flex-1 flex flex-col items-center text-center">
                         <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                          {item.name || "Custom Sports Jersey"}
+                          {item.name}
                         </h3>
 
                         <div className="flex items-center justify-center mb-5 mt-5">
