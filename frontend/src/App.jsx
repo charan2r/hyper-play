@@ -4,7 +4,7 @@ import ProductsPage from "./components/User/ProductsPage";
 import ProductDetailsPage from "./components/User/ProductDetailsPage";
 import SportsPage from "./components/User/SportsPage";
 import AboutPage from "./components/User/AboutPage";
-import CartPage from "./components/User/Cartpage";
+import CartPage from "./components/User/CartPage";
 import CheckoutPage from "./components/User/CheckoutPage";
 import ContactPage from "./components/User/ContactPage";
 import OrderSuccessPage from "./components/User/OrderSuccessPage";

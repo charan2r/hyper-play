@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+    restart: always
+
+  frontend-user:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    restart: always
+
+  frontend-admin:
+    build: ./admin
+    ports:
+      - "3001:80"
+    restart: always
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgresR5
+      POSTGRES_DB: sports
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
