@@ -26,7 +26,7 @@ jobs:
                   context: ./backend
                   push: true
                   tags: |
-                      ${{secrets.GITHUB_TOKEN}}/hyper-play-backend:latest
+                      ${{secrets.DOCKERHUB_USERNAME}}/hyper-play-backend:latest
 
             # build user frontend
             - name: Build & Push User Frontend
