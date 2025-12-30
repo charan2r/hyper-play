@@ -4,7 +4,7 @@ import ProductsPage from "./components/User/ProductsPage.jsx";
 import ProductDetailsPage from "./components/User/ProductDetailsPage.jsx";
 import SportsPage from "./components/User/SportsPage.jsx";
 import AboutPage from "./components/User/AboutPage.jsx";
-import CartPage from "./components/User/CartPage.jsx";
+import CartPage from "./components/User/CartPage";
 import CheckoutPage from "./components/User/CheckoutPage.jsx";
 import ContactPage from "./components/User/ContactPage.tsx";
 import OrderSuccessPage from "./components/User/OrderSuccessPage.jsx";
