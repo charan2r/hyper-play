@@ -1,16 +1,6 @@
 const pool = require("../db");
-const crypto = require("crypto");
-
-function generateHash(merchantId, orderId, amount, currency, merchantSecret) {
-  const amountFormatted = parseFloat(amount).toFixed(2);
-  const hashString =
-    merchantId + orderId + amountFormatted + currency + merchantSecret;
-  return crypto
-    .createHash("md5")
-    .update(hashString)
-    .digest("hex")
-    .toUpperCase();
-}
+const Stripe = require("stripe");
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Create order and pay
 exports.createOrder = async (req, res) => {
@@ -31,8 +21,8 @@ exports.createOrder = async (req, res) => {
 
     // Create order
     const order = await pool.query(
-      `INSERT INTO orders (customer_id, total_amount, status, payment_status) 
-       VALUES ($1, 0, 'pending', 'pending') 
+      `INSERT INTO orders (customer_id, total_amount, status, payment_status, payment_method) 
+       VALUES ($1, 0, 'pending', 'pending','credit_card') 
        RETURNING id`,
       [customer_id]
     );
@@ -57,49 +47,33 @@ exports.createOrder = async (req, res) => {
       );
     }
 
+    // create stripe paymentintent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(total),
+      currency: "lkr",
+      metadata: {
+        order_id: orderId,
+        customer_id: customer_id,
+      },
+    });
+
+    // save payment record
+    await pool.query(
+      `insert into payments(order_id, amount, method, status, stripe_payment_intent_id)
+      values($1, $2, $3, $4, $5)`,
+      [orderId, total, "credit_card", "pending", paymentIntent.id]
+    );
+
     // update total amount in orders table
     await pool.query(`UPDATE orders SET total_amount = $1 WHERE id = $2`, [
       total,
       orderId,
     ]);
 
-    // prepare PayHere payload
-    const merchantId = process.env.PAYHERE_MERCHANT_ID;
-    const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET;
-    const currency = "LKR";
-
-    const hash = generateHash(
-      merchantId,
-      orderId,
-      total,
-      currency,
-      merchantSecret
-    );
-
-    const payHereData = {
-      merchant_id: merchantId,
-      return_url: process.env.PAYHERE_RETURN_URL,
-      cancel_url: process.env.PAYHERE_CANCEL_URL,
-      notify_url: process.env.PAYHERE_NOTIFY_URL,
-      order_id: orderId,
-      items: "Order Payment",
-      amount: total.toFixed(2),
-      currency: "LKR",
-      first_name: customerInfo.firstName,
-      last_name: customerInfo.lastName || "",
-      email: customerInfo.email,
-      phone: customerInfo.phone || "",
-      address: customerInfo.address || "",
-      city: customerInfo.city || "",
-      country: "Sri Lanka",
-      hash,
-      custom_1: "hyper-play",
-    };
-
     res.json({
       success: true,
       orderId,
-      payHereData,
+      clientSecret: paymentIntent.client_secret,
       message: "Order created successfully",
     });
   } catch (error) {

@@ -1,50 +1,64 @@
 const pool = require("../db");
+const Stripe = require("stripe");
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-exports.payHereNotify = async (req, res) => {
-  const {
-    merchant_id,
-    order_id,
-    payment_id,
-    payhere_amount,
-    status_code,
-    md5sig,
-    method,
-  } = req.body;
-
+exports.createWebhook = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  let event;
   try {
-    if (status_code != 2) {
-      console.log("Payment failed:", req.body);
-      return res.status(200).send("Payment Failed");
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+
+    if (event.type === "payment_intent.succeeded") {
+      const paymentIntent = event.data.object;
+      const order_id = paymentIntent.metadata.order_id;
+
+      // update payments table with successful payment
+      await pool.query(
+        `update payments set status = 'paid', stripe_charge_id = $1, updated_at = CURRENT_TIMESTAMP where order_id = $2`,
+        [paymentIntent.charges.data[0].id, order_id]
+      );
+
+      // update orders table
+      await pool.query(
+        `update orders set status = 'processing', payment_status = 'paid' where id = $1`,
+        [order_id]
+      );
+
+      // update products
+      const items = await pool.query(
+        `select product_id, quantity from order_items where order_id = $1`,
+        [order_id]
+      );
+
+      for (const item of items.rows) {
+        await pool.query(
+          `update product set stock = stock - $1, sold = sold + $1 where id = $2`,
+          [item.quantity, item.product_id]
+        );
+      }
     }
 
-    // insert into payments table
-    await pool.query(
-      `insert into payments (order_id, amount, method, status, transaction_id, gateway, confirmed) values ($1, $2, $3, 'success', $4, 'payhere', true)`,
-      [order_id, payhere_amount, method, payment_id]
-    );
+    if (event.type === "payment_intent.payment_failed") {
+      const paymentIntent = event.data.object;
 
-    // update orders table
-    await pool.query(
-      `update orders set status ='paid', payment_status = 'completed' where id = $1`,
-      [order_id]
-    );
-
-    // update products
-    const items = await pool.query(
-      `select product_id, quantity from order_items where id = $1`,
-      [order_id]
-    );
-
-    for (const item of items.row) {
       await pool.query(
-        `update product set stock = stock - $1, sold = sold + $1 where order_id = $2`,
-        [item.quantity, item.product_id]
+        `UPDATE payments SET status = 'failed' WHERE stripe_payment_intent_id = $1`,
+        [paymentIntent.id]
+      );
+
+      await pool.query(
+        `UPDATE orders SET payment_status = 'failed' WHERE id = $1`,
+        [paymentIntent.metadata.order_id]
       );
     }
 
     return res.status(200).send("OK");
   } catch (error) {
-    console.error("PayHere Notify Error:", error);
+    console.error("Webhook Error:", error);
     res.status(500).send("Error");
   }
 };
