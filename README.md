@@ -165,12 +165,12 @@ cd project-hyper-play
 Create `backend/.env`:
 
 ```env
-PORT=5000
-DB_HOST=db
-DB_USER=postgres
-DB_PASSWORD=postgresR5
-DB_NAME=sports
-DB_PORT=5432
+PORT=
+DB_HOST=
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
+DB_PORT=
 JWT_SECRET=your_jwt_secret_key_here
 AWS_REGION=your_aws_region
 AWS_ACCESS_KEY_ID=your_aws_access_key
@@ -211,12 +211,12 @@ npm install
 Create `backend/.env`:
 
 ```env
-PORT=5000
-DB_HOST=localhost
-DB_USER=postgres
-DB_PASSWORD=postgresR5
-DB_NAME=sports
-DB_PORT=5432
+PORT=
+DB_HOST=
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
+DB_PORT=
 JWT_SECRET=your_jwt_secret_key_here
 AWS_REGION=your_aws_region
 AWS_ACCESS_KEY_ID=your_aws_access_key
