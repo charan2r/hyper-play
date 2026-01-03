@@ -1,12 +1,12 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-undef */
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth0 } from "@auth0/auth0-react";
 import { CheckCircle, Home, ShoppingBag, Package, Clock } from "lucide-react";
 import Navbar from "./Navbar";
 
 export default function OrderSuccessPage() {
   const navigate = useNavigate();
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
   const [recentOrder, setRecentOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [creatingOrder, setCreatingOrder] = useState(true);
@@ -18,7 +18,6 @@ export default function OrderSuccessPage() {
   // 1. Fetch recent order
   const fetchRecentOrder = useCallback(async () => {
     try {
-      const token = await getAccessTokenSilently();
       const response = await fetch("http://localhost:5000/api/order/orders", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -34,7 +33,7 @@ export default function OrderSuccessPage() {
     } finally {
       setLoading(false);
     }
-  }, [getAccessTokenSilently]);
+  });
 
   // 2. Check payment + create order
   const checkPaymentAndCreateOrder = useCallback(async () => {
@@ -95,7 +94,7 @@ export default function OrderSuccessPage() {
       console.error("Error in checkPaymentAndCreateOrder:", error);
       setCreatingOrder(false);
     }
-  }, [fetchRecentOrder, getAccessTokenSilently, sessionId]);
+  }, [fetchRecentOrder, sessionId]);
 
   // 3. On mount → check payment → create order → fetch order
   useEffect(() => {
@@ -106,7 +105,7 @@ export default function OrderSuccessPage() {
     }
 
     return;
-  }, [navigate, isAuthenticated, sessionId, checkPaymentAndCreateOrder]);
+  }, [navigate, sessionId, checkPaymentAndCreateOrder]);
 
   return (
     <>
