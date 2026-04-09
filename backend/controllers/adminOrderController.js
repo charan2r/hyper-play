@@ -1,71 +1,18 @@
-const pool = require("../db");
+const adminOrderService = require("../services/adminOrderService");
 
 // Get all orders
 exports.getAllOrders = async (req, res) => {
   try {
-    const orders = await pool.query(
-      `SELECT 
-        o.id,
-        o.total_amount,
-        o.order_date,
-        o.status,
-        o.payment_status,
-        o.manufacturer_id,
-        o.customer_id,
-        m.name as manufacturer_name
-       FROM orders o 
-       LEFT JOIN manufacturer m ON o.manufacturer_id = m.id
-       ORDER BY o.order_date DESC`
-    );
-
-    const orderIds = orders.rows.map((order) => order.id);
-    let orderItems = [];
-
-    if (orderIds.length > 0) {
-      const placeholders = orderIds
-        .map((_, index) => `$${index + 1}`)
-        .join(",");
-      orderItems = await pool.query(
-        `SELECT 
-          oi.order_id,
-          oi.id,
-          oi.product_id,
-          oi.quantity,
-          oi.price,
-          p.name as product_name
-         FROM order_items oi
-         LEFT JOIN product p ON oi.product_id = p.id
-         WHERE oi.order_id IN (${placeholders})`,
-        orderIds
-      );
-    }
-
-    const ordersWithItems = orders.rows.map((order) => {
-      const items = orderItems.rows.filter(
-        (item) => item.order_id.toString() === order.id.toString()
-      );
-
-      return {
-        ...order,
-        items: items.map((item) => ({
-          id: item.id,
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-      };
-    });
+    const orders = await adminOrderService.getAllOrders();
 
     res.json({
       success: true,
-      orders: ordersWithItems,
+      data: orders,
     });
   } catch (error) {
-    console.error("Error fetching orders for admin:", error);
     res.status(500).json({
       success: false,
-      error: "Failed to fetch orders",
+      error: error.message || "Failed to fetch orders",
     });
   }
 };
@@ -83,49 +30,26 @@ exports.assignManufacturer = async (req, res) => {
       });
     }
 
-    // Check if manufacturer exists
-    const manufacturer = await pool.query(
-      "SELECT id, name FROM manufacturer WHERE id = $1",
-      [manufacturer_id]
+    const order = await adminOrderService.assignManufacturer(
+      orderId,
+      manufacturer_id,
     );
 
-    if (manufacturer.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "Manufacturer not found",
-      });
-    }
-
-    // Update order with assigned manufacturer
-    const result = await pool.query(
-      `UPDATE orders 
-       SET manufacturer_id = $1, 
-           status = CASE 
-             WHEN status = 'confirmed' THEN 'processing' 
-             ELSE status 
-           END
-       WHERE id = $2 
-       RETURNING *`,
-      [manufacturer_id, orderId]
+    const manufacturers = await adminOrderService.getManufacturers();
+    const assignedManufacturer = manufacturers.find(
+      (m) => m.id === manufacturer_id,
     );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "Order not found",
-      });
-    }
 
     res.json({
       success: true,
-      message: `Order assigned to ${manufacturer.rows[0].name}`,
-      order: result.rows[0],
+      message: `Order assigned to ${assignedManufacturer?.name || "manufacturer"}`,
+      data: order,
     });
   } catch (error) {
-    console.error("Error assigning manufacturer:", error);
-    res.status(500).json({
+    const statusCode = error.message.includes("not found") ? 404 : 400;
+    res.status(statusCode).json({
       success: false,
-      error: "Failed to assign manufacturer",
+      error: error.message || "Failed to assign manufacturer",
     });
   }
 };
@@ -133,19 +57,16 @@ exports.assignManufacturer = async (req, res) => {
 // Get all manufacturers for assignment dropdown
 exports.getManufacturers = async (req, res) => {
   try {
-    const manufacturers = await pool.query(
-      "SELECT id, name, email, phone FROM manufacturer WHERE status = 'active' ORDER BY name"
-    );
+    const manufacturers = await adminOrderService.getManufacturers();
 
     res.json({
       success: true,
-      manufacturers: manufacturers.rows,
+      data: manufacturers,
     });
   } catch (error) {
-    console.error("Error fetching manufacturers:", error);
     res.status(500).json({
       success: false,
-      error: "Failed to fetch manufacturers",
+      error: error.message || "Failed to fetch manufacturers",
     });
   }
 };

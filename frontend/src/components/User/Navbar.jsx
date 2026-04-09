@@ -141,13 +141,6 @@ const Navbar = () => {
 
           {/* Right Menu Items */}
           <div className="hidden md:flex items-center space-x-8">
-            <a
-              href="/about"
-              className="text-gray-900 hover:text-green-600 px-3 py-2 text-lg font-medium transition-colors"
-            >
-              About us
-            </a>
-
             {/* Search Icon */}
             <button className="text-gray-900 hover:text-green-600 p-2 transition-colors">
               <Search className="h-6 w-6" />

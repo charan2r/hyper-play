@@ -85,37 +85,31 @@ export default function CheckoutPage() {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
-      if (!data.success) {
-        alert("Checkout failed");
+      if (!data.success || !data.data) {
+        alert(data.error || "Checkout failed");
         setIsProcessing(false);
         return;
       }
 
-      submitPayHereForm(data.payHereData);
+      const orderData = data.data;
+      // Redirect to Stripe hosted checkout using their official redirect URL
+      if (orderData.redirectUrl) {
+        window.location.href = orderData.redirectUrl;
+      } else {
+        alert("No payment redirect URL received from server");
+        setIsProcessing(false);
+      }
     } catch (err) {
-      console.error("Checkout error", err);
-      alert("Something went wrong");
+      console.error("Checkout error:", err);
+      alert(err.message || "Something went wrong");
       setIsProcessing(false);
     }
-  };
-
-  const submitPayHereForm = (payHereData) => {
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = "https://sandbox.payhere.lk/pay/checkout";
-
-    Object.entries(payHereData).forEach(([key, value]) => {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = key;
-      input.value = value;
-      form.appendChild(input);
-    });
-
-    document.body.appendChild(form);
-    form.submit();
   };
 
   return (
@@ -312,7 +306,7 @@ export default function CheckoutPage() {
                         onError={(e) => {
                           console.error(
                             "Design image failed to load in checkout:",
-                            item.design_data
+                            item.design_data,
                           );
                           e.target.style.display = "none";
                         }}

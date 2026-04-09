@@ -1,14 +1,18 @@
+const productService = require("../services/productService");
 const pool = require("../db");
 
-// customer fetch products
+// Customer fetch active products
 exports.getProducts = async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM product WHERE LOWER(status) = 'active'"
-    );
-    res.json(result.rows);
+    const products = await productService.getActiveProducts();
+    res.json({
+      success: true,
+      data: products,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch products" });
+    res.status(500).json({
+      error: error.message || "Failed to fetch products",
+    });
   }
 };
 
@@ -95,7 +99,7 @@ exports.getCart = async (req, res) => {
       WHERE ci.customer_id = $1
       ORDER BY ci.id ASC
       `,
-      [customer_id]
+      [customer_id],
     );
 
     const normalized = items.rows.map((r) => ({
@@ -129,7 +133,7 @@ exports.addToCart = async (req, res) => {
     const item = await pool.query(
       `INSERT INTO cartitem (customer_id, product_id, quantity)
        VALUES ($1, $2, $3) RETURNING *`,
-      [customer_id, product_id, quantity]
+      [customer_id, product_id, quantity],
     );
 
     res.status(201).json(item.rows[0]);

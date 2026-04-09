@@ -18,13 +18,13 @@ const ProductsPage = () => {
     const fetchProducts = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/customer/products"
+          "http://localhost:5000/api/customer/products",
         );
         if (response.ok) {
           const data = await response.json();
           console.log("Products fetched:", data);
-          setProducts(data);
-          if (data.length === 0) {
+          setProducts(data.data);
+          if (data.data.length === 0) {
             console.log("No products in database, will show fallback");
           }
         } else {

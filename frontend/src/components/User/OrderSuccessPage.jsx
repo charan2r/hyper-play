@@ -12,8 +12,9 @@ export default function OrderSuccessPage() {
   const [creatingOrder, setCreatingOrder] = useState(true);
 
   const sessionId = new URLSearchParams(window.location.search).get(
-    "session_id"
+    "session_id",
   );
+  const token = localStorage.getItem("customerToken");
 
   // 1. Fetch recent order
   const fetchRecentOrder = useCallback(async () => {
@@ -38,74 +39,38 @@ export default function OrderSuccessPage() {
   // 2. Check payment + create order
   const checkPaymentAndCreateOrder = useCallback(async () => {
     if (!sessionId) {
-      console.error("No session ID found");
       setCreatingOrder(false);
       return;
     }
 
     try {
-      const token = await getAccessTokenSilently();
-      console.log("Checking payment status for session:", sessionId);
-
-      const paymentStatus = await fetch(
-        `http://localhost:5000/api/checkout/payment-status/${sessionId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      ).then((r) => r.json());
-
-      console.log("Payment status:", paymentStatus);
-
-      if (paymentStatus.ready_for_order) {
-        console.log(
-          "Creating order with payment_intent_id:",
-          paymentStatus.payment_intent_id
-        );
-
-        const orderResult = await fetch(
-          "http://localhost:5000/api/order/create",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              payment_intent_id: paymentStatus.payment_intent_id,
-            }),
-          }
-        ).then((r) => r.json());
-
-        console.log("Order result:", orderResult);
-
-        if (orderResult.success) {
-          console.log("Order created successfully:", orderResult.order_id);
-          fetchRecentOrder();
-          setCreatingOrder(false);
-        } else {
-          console.error("Failed to create order:", orderResult);
-          setCreatingOrder(false);
-        }
-      } else {
-        console.log("Payment not ready, retrying in 2 seconds...");
-        setTimeout(checkPaymentAndCreateOrder, 2000);
-      }
+      setCreatingOrder(false);
     } catch (error) {
-      console.error("Error in checkPaymentAndCreateOrder:", error);
+      console.error("Error processing payment:", error);
       setCreatingOrder(false);
     }
-  }, [fetchRecentOrder, sessionId]);
+  });
 
-  // 3. On mount → check payment → create order → fetch order
+  // 3. On mount → check payment → fetch order
   useEffect(() => {
-    if (isAuthenticated && sessionId) {
+    if (token && sessionId) {
       checkPaymentAndCreateOrder();
+      fetchRecentOrder();
+    } else if (token) {
+      fetchRecentOrder();
     } else {
       setLoading(false);
+      navigate("/login");
     }
 
     return;
-  }, [navigate, sessionId, checkPaymentAndCreateOrder]);
+  }, [
+    navigate,
+    sessionId,
+    token,
+    checkPaymentAndCreateOrder,
+    fetchRecentOrder,
+  ]);
 
   return (
     <>

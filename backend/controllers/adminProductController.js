@@ -1,114 +1,88 @@
-const pool = require("../db");
+const productService = require("../services/productService");
 
-// get all products
+// Get all products
 exports.getAllProducts = async (req, res) => {
   try {
-    const results = await pool.query(
-      "SELECT * FROM product ORDER BY created_date DESC"
-    );
-    res.json(results.rows);
+    const products = await productService.getAllProducts();
+    res.json({
+      success: true,
+      data: products,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch products" });
+    res.status(500).json({
+      error: "Failed to fetch products",
+    });
   }
 };
 
-// get one product
+// Get product by ID
 exports.getProductById = async (req, res) => {
-  const { id } = req.params;
   try {
-    const result = await pool.query("SELECT * FROM product WHERE id = $1", [
-      id,
-    ]);
-    if (result.rows.length == 0) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-    res.json(result.rows[0]);
+    const product = await productService.getProductById(req.params.id);
+    res.json({
+      success: true,
+      data: product,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch products" });
+    const statusCode = error.message.includes("not found") ? 404 : 500;
+    res.status(statusCode).json({
+      error: error.message || "Failed to fetch product",
+    });
   }
 };
 
-// add product
+// Add product
 exports.addProduct = async (req, res) => {
-  const {
-    name,
-    description,
-    price,
-    category,
-    sport,
-    status = "active",
-    stock = 0,
-  } = req.body;
-  const image = req.file ? req.file.location : null;
-
   try {
-    const product = await pool.query(
-      `INSERT INTO product (name, description, price, category, sport, status, stock, image)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       RETURNING *`,
-      [name, description, price, category, sport, status, stock, image]
-    );
-    res.status(201).json(product.rows[0]);
+    const imageUrl = req.file ? req.file.location : null;
+    const product = await productService.addProduct(req.body, imageUrl);
+
+    res.status(201).json({
+      success: true,
+      data: product,
+    });
   } catch (error) {
-    console.error("Error adding product:", error);
-    res.status(500).json({ error: "Failed to create product" });
+    res.status(400).json({
+      error: error.message || "Failed to create product",
+    });
   }
 };
 
-// update product
+// Update product
 exports.updateProduct = async (req, res) => {
-  const { id } = req.params;
-  const { name, description, price, category, sport, status, stock } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : null;
-
   try {
-    let query, params;
-    if (image) {
-      query = `UPDATE product SET
-               name=$1, description=$2, price=$3, category=$4, sport=$5, status=$6,
-               stock=$7, image=$8
-               WHERE id=$9 RETURNING *`;
-      params = [
-        name,
-        description,
-        price,
-        category,
-        sport,
-        status,
-        stock,
-        image,
-        id,
-      ];
-    } else {
-      query = `UPDATE product SET
-               name=$1, description=$2, price=$3, category=$4, sport=$5, status=$6,
-               stock=$7
-               WHERE id=$8 RETURNING *`;
-      params = [name, description, price, category, sport, status, stock, id];
-    }
+    const imageUrl = req.file ? req.file.location : null;
+    const product = await productService.updateProduct(
+      req.params.id,
+      req.body,
+      imageUrl,
+    );
 
-    const result = await pool.query(query, params);
-    if (result.rows.length === 0)
-      return res.status(404).json({ error: "Product not found" });
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error("Error updating product:", err);
-    res.status(500).json({ error: "Failed to update product" });
+    res.json({
+      success: true,
+      data: product,
+    });
+  } catch (error) {
+    const statusCode = error.message.includes("not found") ? 404 : 400;
+    res.status(statusCode).json({
+      error: error.message || "Failed to update product",
+    });
   }
 };
 
-// delete product
+// Delete product
 exports.deleteProduct = async (req, res) => {
-  const { id } = req.params;
   try {
-    const result = await pool.query(
-      "DELETE FROM product WHERE id = $1 RETURNING *",
-      [id]
-    );
-    if (result.rows.length === 0)
-      return res.status(404).json({ error: "Product not found" });
-    res.json({ message: "Product deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to delete product" });
+    await productService.deleteProduct(req.params.id);
+
+    res.json({
+      success: true,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    const statusCode = error.message.includes("not found") ? 404 : 500;
+    res.status(statusCode).json({
+      error: error.message || "Failed to delete product",
+    });
   }
 };

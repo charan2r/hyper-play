@@ -37,12 +37,12 @@ const ProductDetailsPage = () => {
     const fetchProduct = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/admin/products/${id}`
+          `http://localhost:5000/api/admin/products/${id}`,
         );
         if (response.ok) {
           const data = await response.json();
           console.log("Product fetched:", data);
-          setProduct(data);
+          setProduct(data.data);
         } else {
           console.error("Failed to fetch product");
         }
