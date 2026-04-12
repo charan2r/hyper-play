@@ -58,7 +58,7 @@ class OrderRepository {
        LEFT JOIN product p ON oi.product_id = p.id
        WHERE o.customer_id = $1
        GROUP BY o.id
-       ORDER BY o.created_at DESC`,
+       ORDER BY o.order_date DESC`,
       [customerId],
     );
     return result.rows;
@@ -90,7 +90,7 @@ class OrderRepository {
 
   async updateOrderStatus(orderId, status) {
     const result = await pool.query(
-      `UPDATE orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+      `UPDATE orders SET status = $1 WHERE id = $2 RETURNING *`,
       [status, orderId],
     );
     return result.rows[0];
@@ -98,7 +98,7 @@ class OrderRepository {
 
   async updatePaymentStatus(orderId, paymentStatus) {
     const result = await pool.query(
-      `UPDATE orders SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+      `UPDATE orders SET payment_status = $1 WHERE id = $2 RETURNING *`,
       [paymentStatus, orderId],
     );
     return result.rows[0];
@@ -216,6 +216,17 @@ class OrderRepository {
     return result.rows[0];
   }
 
+  async updatePaymentByOrderId(orderId, status, stripePaymentIntentId) {
+    const result = await pool.query(
+      `UPDATE payments 
+       SET status = $1, stripe_payment_intent_id = $2, updated_at = CURRENT_TIMESTAMP 
+       WHERE order_id = $3 
+       RETURNING *`,
+      [status, stripePaymentIntentId, orderId],
+    );
+    return result.rows[0];
+  }
+
   async getOrderItems(orderId) {
     const result = await pool.query(
       `SELECT oi.*, p.name AS product_name
@@ -225,6 +236,12 @@ class OrderRepository {
       [orderId],
     );
     return result.rows;
+  }
+
+  async clearCart(customerId) {
+    await pool.query(`DELETE FROM cartitem WHERE customer_id = $1`, [
+      customerId,
+    ]);
   }
 }
 

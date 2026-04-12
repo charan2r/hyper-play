@@ -25,8 +25,9 @@ export default function OrderSuccessPage() {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.orders && data.orders.length > 0) {
-          setRecentOrder(data.orders[0]);
+        const orders = data.data || data.orders || [];
+        if (orders.length > 0) {
+          setRecentOrder(orders[0]);
         }
       }
     } catch (error) {
@@ -36,7 +37,7 @@ export default function OrderSuccessPage() {
     }
   });
 
-  // 2. Check payment + create order
+  // 2. Check payment + verify order status
   const checkPaymentAndCreateOrder = useCallback(async () => {
     if (!sessionId) {
       setCreatingOrder(false);
@@ -44,9 +45,27 @@ export default function OrderSuccessPage() {
     }
 
     try {
-      setCreatingOrder(false);
+      const response = await fetch(
+        "http://localhost:5000/api/order/verify-payment",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ sessionId }),
+        },
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Payment verified:", data);
+      } else {
+        console.error("Payment verification failed");
+      }
     } catch (error) {
-      console.error("Error processing payment:", error);
+      console.error("Error verifying payment:", error);
+    } finally {
       setCreatingOrder(false);
     }
   });
@@ -116,7 +135,7 @@ export default function OrderSuccessPage() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Items:</span>
                   <span className="font-semibold">
-                    {recentOrder.item_count} item(s)
+                    {recentOrder.items ? recentOrder.items.length : 0} item(s)
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -126,11 +145,11 @@ export default function OrderSuccessPage() {
                     {recentOrder.status || "Confirmed"}
                   </span>
                 </div>
-                {recentOrder.product_names && (
+                {recentOrder.items && recentOrder.items.length > 0 && (
                   <div className="pt-2 border-t">
                     <span className="text-gray-600">Products:</span>
                     <p className="font-medium text-gray-800">
-                      {recentOrder.product_names}
+                      {recentOrder.items.map((item) => item.product_name).join(", ")}
                     </p>
                   </div>
                 )}

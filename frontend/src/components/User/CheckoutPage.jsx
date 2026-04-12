@@ -1,12 +1,91 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CreditCard, MapPin, User, Phone, Mail, ArrowLeft } from "lucide-react";
 import Navbar from "./Navbar";
 
+function sumCartItems(items) {
+  return items.reduce((sum, item) => {
+    return sum + (Number(item.price) || 0) * (Number(item.quantity) || 0);
+  }, 0);
+}
+
 export default function CheckoutPage() {
-  const { state } = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
-  const { cartItems = [], total = 0 } = state || {};
+  const { state } = location;
+
+  const [cartItems, setCartItems] = useState([]);
+  const [orderTotal, setOrderTotal] = useState(0);
+  const [loadingCart, setLoadingCart] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingCart(true);
+
+    const applyFromState = () => {
+      const fromNav = state?.cartItems;
+      if (Array.isArray(fromNav) && fromNav.length > 0) {
+        setCartItems(fromNav);
+        const t =
+          typeof state.total === "number" && state.total >= 0
+            ? state.total
+            : sumCartItems(fromNav);
+        setOrderTotal(t);
+        setLoadingCart(false);
+        return true;
+      }
+      return false;
+    };
+
+    const loadFromApi = async () => {
+      const token = localStorage.getItem("customerToken");
+      if (!token) {
+        if (!cancelled) {
+          setCartItems([]);
+          setOrderTotal(0);
+          setLoadingCart(false);
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:5000/api/customer/cart", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!response.ok) {
+          if (!cancelled) {
+            setCartItems([]);
+            setOrderTotal(0);
+          }
+          return;
+        }
+        const data = await response.json();
+        const items = Array.isArray(data) ? data : [];
+        if (!cancelled) {
+          setCartItems(items);
+          setOrderTotal(sumCartItems(items));
+        }
+      } catch {
+        if (!cancelled) {
+          setCartItems([]);
+          setOrderTotal(0);
+        }
+      } finally {
+        if (!cancelled) setLoadingCart(false);
+      }
+    };
+
+    if (!applyFromState()) {
+      loadFromApi();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.key, state]);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -28,13 +107,6 @@ export default function CheckoutPage() {
     }));
   };
 
-  // Calculate total
-  const calculateTotal = () => {
-    return cartItems.reduce((total, item) => {
-      return total + (item.price || 0) * item.quantity;
-    }, 0);
-  };
-
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
 
@@ -49,6 +121,12 @@ export default function CheckoutPage() {
       !formData.zipCode
     ) {
       alert("Please fill in all required fields");
+      return;
+    }
+
+    if (!cartItems.length) {
+      alert("Your cart is empty. Add items before checkout.");
+      navigate("/cart");
       return;
     }
 
@@ -70,7 +148,7 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           cartItems: cartItems.map((item) => ({
-            product_id: item.product_id || item.id,
+            product_id: item.product_id ?? item.id,
             quantity: item.quantity,
           })),
           customerInfo: {
@@ -263,9 +341,11 @@ export default function CheckoutPage() {
                 {/* Place Order Button */}
                 <button
                   type="submit"
-                  disabled={isProcessing}
+                  disabled={
+                    isProcessing || loadingCart || cartItems.length === 0
+                  }
                   className={`w-full mt-8 py-4 rounded-lg font-semibold text-lg transition-colors ${
-                    isProcessing
+                    isProcessing || loadingCart || cartItems.length === 0
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-green-600 hover:bg-green-700 text-white"
                   }`}
@@ -288,10 +368,29 @@ export default function CheckoutPage() {
                 Order Summary
               </h2>
 
+              {loadingCart ? (
+                <p className="text-gray-600 py-8 text-center">
+                  Loading your order…
+                </p>
+              ) : cartItems.length === 0 ? (
+                <p className="text-gray-600 py-8 text-center">
+                  Your cart is empty.{" "}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/products")}
+                    className="text-green-600 font-semibold underline"
+                  >
+                    Continue shopping
+                  </button>
+                </p>
+              ) : (
               <div className="space-y-4 mb-6">
-                {cartItems.map((item, index) => (
+                {cartItems.map((item, index) => {
+                  const lineTotal =
+                    (Number(item.price) || 0) * (Number(item.quantity) || 0);
+                  return (
                   <div
-                    key={index}
+                    key={item.id ?? item.product_id ?? index}
                     className="flex items-center space-x-4 pb-4 border-b"
                   >
                     {item.design_data && (
@@ -327,19 +426,22 @@ export default function CheckoutPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-800">
-                        Rs. {calculateTotal().toLocaleString()}
+                        Rs. {lineTotal.toLocaleString()}
                       </p>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
+              )}
 
               {/* Order Total */}
+              {!loadingCart && cartItems.length > 0 && (
               <div className="border-t pt-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-600">Subtotal:</span>
                   <span className="font-semibold">
-                    Rs. {total.toLocaleString()}
+                    Rs. {orderTotal.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
@@ -356,10 +458,11 @@ export default function CheckoutPage() {
                     Total:
                   </span>
                   <span className="text-lg font-bold text-blue-600">
-                    Rs. {total.toLocaleString()}
+                    Rs. {orderTotal.toLocaleString()}
                   </span>
                 </div>
               </div>
+              )}
 
               {/* Security Badge */}
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">

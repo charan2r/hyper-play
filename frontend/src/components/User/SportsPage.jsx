@@ -3,6 +3,7 @@ import { useSearchParams, useParams } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { Grid, List, Search, Star } from "lucide-react";
+import { addProductToCart } from "../../utils/cartActions";
 
 const SportsPage = () => {
   const [searchParams] = useSearchParams();
@@ -103,34 +104,53 @@ const SportsPage = () => {
     }
   });
 
+  const goToProduct = (productId) => {
+    window.location.href = `/products/${productId}`;
+  };
+
+  const handleAddToCart = async (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await addProductToCart(product, 1);
+  };
+
   const ProductCard = ({ product }) => (
-    <div
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:scale-105 cursor-pointer"
-      onClick={() => {
-        window.location.href = `/products/${product.id}`;
-      }}
-    >
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:scale-105 relative">
       {product.isBestseller && (
         <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 absolute z-10 rounded-br-lg">
           BESTSELLER
         </div>
       )}
       <div className="relative">
-        <img
-          src={
-            product.image
-              ? product.image.startsWith("/uploads")
-                ? `http://localhost:5000${product.image}`
-                : product.image
-              : "/assets/image.png"
-          }
-          alt={product.name}
-          className="w-full h-48 object-cover"
-          onError={(e) => {
-            e.target.src = "/assets/image.png";
+        <button
+          type="button"
+          className="block w-full text-left cursor-pointer"
+          onClick={() => goToProduct(product.id)}
+        >
+          <img
+            src={
+              product.image
+                ? product.image.startsWith("/uploads")
+                  ? `http://localhost:5000${product.image}`
+                  : product.image
+                : "/assets/image.png"
+            }
+            alt={product.name}
+            className="w-full h-48 object-cover"
+            onError={(e) => {
+              e.target.src = "/assets/image.png";
+            }}
+          />
+        </button>
+        <button
+          type="button"
+          className="absolute top-2 right-2 z-[1] bg-white p-2 rounded-full shadow-md hover:bg-gray-50 transition-colors"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
           }}
-        />
-        <button className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:bg-gray-50 transition-colors">
+          aria-label="Add to wishlist"
+        >
           <svg
             className="w-5 h-5 text-gray-600"
             fill="none"
@@ -147,34 +167,48 @@ const SportsPage = () => {
         </button>
       </div>
       <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-green-600 font-semibold uppercase tracking-wide">
-              {product.category}
-            </span>
-            <span className="text-xs text-gray-400">•</span>
-            <span className="text-xs text-blue-600 font-semibold uppercase tracking-wide">
-              {product.sport}
-            </span>
+        <button
+          type="button"
+          className="w-full text-left cursor-pointer"
+          onClick={() => goToProduct(product.id)}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-green-600 font-semibold uppercase tracking-wide">
+                {product.category}
+              </span>
+              <span className="text-xs text-gray-400">•</span>
+              <span className="text-xs text-blue-600 font-semibold uppercase tracking-wide">
+                {product.sport}
+              </span>
+            </div>
+            <div className="flex items-center">
+              <Star className="w-4 h-4 text-yellow-400 fill-current" />
+              <span className="text-sm text-gray-600 ml-1">
+                {product.rating} ({product.reviews})
+              </span>
+            </div>
           </div>
-          <div className="flex items-center">
-            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-            <span className="text-sm text-gray-600 ml-1">
-              {product.rating} ({product.reviews})
-            </span>
-          </div>
-        </div>
-        <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2">
-          {product.name}
-        </h3>
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-          {product.description}
-        </p>
-        <div className="flex items-center justify-between">
-          <span className="text-xl font-bold text-green-600">
+          <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2">
+            {product.name}
+          </h3>
+          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+            {product.description}
+          </p>
+        </button>
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            className="text-xl font-bold text-green-600 cursor-pointer hover:underline text-left"
+            onClick={() => goToProduct(product.id)}
+          >
             Rs. {product.price}
-          </span>
-          <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors font-medium text-sm">
+          </button>
+          <button
+            type="button"
+            className="relative z-[2] bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors font-medium text-sm shrink-0"
+            onClick={(e) => handleAddToCart(e, product)}
+          >
             Add to Cart
           </button>
         </div>

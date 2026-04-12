@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { addProductToCart } from "../../utils/cartActions";
 import {
   Star,
   Heart,
@@ -68,78 +69,21 @@ const ProductDetailsPage = () => {
 
   // Handle add to cart
   const handleAddToCart = async () => {
-    try {
-      const payload = {
-        product_id: product.id,
-        quantity,
-      };
-
-      const token = localStorage.getItem("customerToken");
-      if (!token) {
-        alert("Please login to add items to your cart.");
-        navigate("/login");
-        return;
-      }
-
-      const response = await fetch("http://localhost:5000/api/customer/cart", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add to cart");
-      }
-
-      const data = await response.json();
-      console.log("Added to cart:", data);
-
+    const result = await addProductToCart(product, quantity, { navigate });
+    if (result.ok) {
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
-    } catch (err) {
-      console.error("Error adding to cart:", err);
-      alert("Could not add to cart. Please try again.");
     }
   };
 
   // Handle buy now
   const handleBuyNow = async () => {
-    try {
-      const payload = {
-        product_id: product.id,
-        quantity,
-      };
-
-      const token = localStorage.getItem("customerToken");
-      if (!token) {
-        alert("Please login before making a purchase.");
-        navigate("/login");
-        return;
-      }
-
-      const response = await fetch("http://localhost:5000/api/customer/cart", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add to cart");
-      }
-
-      const data = await response.json();
-      console.log("Added to cart (Buy Now):", data);
-
+    const result = await addProductToCart(product, quantity, {
+      skipToast: true,
+      navigate,
+    });
+    if (result.ok) {
       navigate("/checkout");
-    } catch (err) {
-      console.error("Error in Buy Now:", err);
-      alert("Could not proceed with Buy Now. Please try again.");
     }
   };
 

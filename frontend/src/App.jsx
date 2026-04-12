@@ -11,10 +11,12 @@ import OrderSuccessPage from "./components/User/OrderSuccessPage.jsx";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
 import ForgotPassword from "./components/Auth/ForgotPassword";
+import ToastHost from "./components/User/ToastHost.jsx";
 
 export default function App() {
   return (
     <Router>
+      <ToastHost />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/products" element={<ProductsPage />} />

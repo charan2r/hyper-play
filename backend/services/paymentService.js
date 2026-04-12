@@ -4,17 +4,29 @@ const Stripe = require("stripe");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 class PaymentService {
-  async handlePaymentSuccess(event) {
-    const paymentIntent = event.data.object;
-    const orderId = paymentIntent.metadata.order_id;
+  async handleCheckoutComplete(session) {
+    const orderId = session.metadata.order_id;
 
-    // Update payment record
-    await orderRepository.updatePaymentRecord(
-      paymentIntent.charges.data[0].id,
-      paymentIntent.id,
-    );
+    if (!orderId) {
+      console.error("No order_id in session metadata");
+      return { success: false, error: "Missing order_id" };
+    }
 
-    // Update order status to processing
+    // Only process if payment was successful
+    if (session.payment_status !== "paid") {
+      return { success: true, orderId, note: "Payment not yet paid" };
+    }
+
+    // Update payment record with Stripe payment intent ID
+    if (session.payment_intent) {
+      await orderRepository.updatePaymentByOrderId(
+        orderId,
+        "paid",
+        session.payment_intent,
+      );
+    }
+
+    // Update order status
     await orderRepository.updateOrderStatus(orderId, "processing");
     await orderRepository.updatePaymentStatus(orderId, "paid");
 
@@ -24,6 +36,13 @@ class PaymentService {
       await orderRepository.updateProductStock(item.product_id, item.quantity);
     }
 
+    // Clear customer's cart
+    const customerId = session.metadata.customer_id;
+    if (customerId) {
+      await orderRepository.clearCart(customerId);
+    }
+
+    console.log(`Order ${orderId} payment completed successfully`);
     return { success: true, orderId };
   }
 
@@ -31,8 +50,10 @@ class PaymentService {
     const paymentIntent = event.data.object;
     const orderId = paymentIntent.metadata.order_id;
 
-    // Update payment status to failed
-    await orderRepository.updatePaymentStatus(orderId, "failed");
+    if (orderId) {
+      await orderRepository.updatePaymentStatus(orderId, "failed");
+      await orderRepository.updateOrderStatus(orderId, "failed");
+    }
 
     return { success: true, orderId };
   }
@@ -50,8 +71,10 @@ class PaymentService {
       throw new Error(`Webhook Error: ${error.message}`);
     }
 
-    if (event.type === "payment_intent.succeeded") {
-      return await this.handlePaymentSuccess(event);
+    console.log(`Stripe webhook received: ${event.type}`);
+
+    if (event.type === "checkout.session.completed") {
+      return await this.handleCheckoutComplete(event.data.object);
     }
 
     if (event.type === "payment_intent.payment_failed") {
@@ -59,6 +82,64 @@ class PaymentService {
     }
 
     return { success: true, eventType: event.type };
+  }
+
+  // Verify payment via Stripe session ID (called from redirect flow)
+  async verifySession(sessionId) {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (!session) {
+      throw new Error("Invalid session ID");
+    }
+
+    const orderId = session.metadata.order_id;
+
+    if (!orderId) {
+      throw new Error("No order_id found in session");
+    }
+
+    // Check if already processed
+    const order = await orderRepository.getOrderById(orderId);
+    if (order && order.payment_status === "paid") {
+      return { success: true, orderId, alreadyProcessed: true };
+    }
+
+    // Process the payment confirmation
+    if (session.payment_status === "paid") {
+      if (session.payment_intent) {
+        await orderRepository.updatePaymentByOrderId(
+          orderId,
+          "paid",
+          session.payment_intent,
+        );
+      }
+
+      await orderRepository.updateOrderStatus(orderId, "processing");
+      await orderRepository.updatePaymentStatus(orderId, "paid");
+
+      // Update product stock
+      const items = await orderRepository.getOrderItems(orderId);
+      for (const item of items) {
+        await orderRepository.updateProductStock(
+          item.product_id,
+          item.quantity,
+        );
+      }
+
+      // Clear customer's cart
+      const customerId = session.metadata.customer_id;
+      if (customerId) {
+        await orderRepository.clearCart(customerId);
+      }
+
+      return { success: true, orderId };
+    }
+
+    return {
+      success: false,
+      orderId,
+      paymentStatus: session.payment_status,
+    };
   }
 }
 

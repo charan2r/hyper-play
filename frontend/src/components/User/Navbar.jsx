@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ChevronDown,
   Menu,
@@ -8,6 +8,7 @@ import {
   LogIn,
   LogOut,
 } from "lucide-react";
+import { CART_UPDATED_EVENT } from "../../utils/cartEvents";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +16,36 @@ const Navbar = () => {
   const [sportsDropdown, setSportsDropdown] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  const [cartItemCount, setCartItemCount] = useState(0);
+
+  const refreshCartCount = useCallback(async () => {
+    const token = localStorage.getItem("customerToken");
+    if (!token) {
+      setCartItemCount(0);
+      return;
+    }
+    try {
+      const response = await fetch("http://localhost:5000/api/customer/cart", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        setCartItemCount(0);
+        return;
+      }
+      const data = await response.json();
+      const items = Array.isArray(data) ? data : data?.data ?? [];
+      const count = items.reduce(
+        (sum, item) => sum + (Number(item.quantity) || 0),
+        0
+      );
+      setCartItemCount(count);
+    } catch {
+      setCartItemCount(0);
+    }
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("customerToken");
@@ -23,14 +54,22 @@ const Navbar = () => {
     if (token && userData) {
       setIsLoggedIn(true);
       setUser(JSON.parse(userData));
+      refreshCartCount();
     }
-  }, []);
+  }, [refreshCartCount]);
+
+  useEffect(() => {
+    const onCartUpdated = () => refreshCartCount();
+    window.addEventListener(CART_UPDATED_EVENT, onCartUpdated);
+    return () => window.removeEventListener(CART_UPDATED_EVENT, onCartUpdated);
+  }, [refreshCartCount]);
 
   const handleLogout = () => {
     localStorage.removeItem("customerToken");
     localStorage.removeItem("customerUser");
     setIsLoggedIn(false);
     setUser(null);
+    setCartItemCount(0);
     window.location.href = "/";
   };
 
@@ -42,7 +81,6 @@ const Navbar = () => {
     "Bestsellers",
     "Hoodies",
     "Accessories",
-    "Custom Jersey",
   ];
 
   const sportsItems = [
@@ -147,10 +185,21 @@ const Navbar = () => {
             </button>
             {/* Cart Icon */}
             <button
-              className="text-gray-900 hover:text-green-600 p-2 transition-colors"
+              type="button"
+              className="relative text-gray-900 hover:text-green-600 p-2 transition-colors"
               onClick={() => (window.location.href = "/cart")}
+              aria-label={
+                cartItemCount > 0
+                  ? `Cart, ${cartItemCount} items`
+                  : "Cart"
+              }
             >
               <ShoppingCart className="h-6 w-6" />
+              {cartItemCount > 0 && (
+                <span className="absolute top-0 right-0 min-w-[1.125rem] h-[1.125rem] px-1 flex items-center justify-center rounded-full bg-green-600 text-white text-[10px] font-bold leading-none">
+                  {cartItemCount > 99 ? "99+" : cartItemCount}
+                </span>
+              )}
             </button>
 
             {/* Login/Logout */}
@@ -226,6 +275,17 @@ const Navbar = () => {
                 className="block px-3 py-2 text-base font-medium text-gray-900 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
               >
                 FAQ
+              </a>
+              <a
+                href="/cart"
+                className="flex items-center justify-between px-3 py-2 text-base font-medium text-gray-900 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+              >
+                <span>Cart</span>
+                {cartItemCount > 0 && (
+                  <span className="min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center rounded-full bg-green-600 text-white text-xs font-bold">
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </span>
+                )}
               </a>
             </div>
           </div>
