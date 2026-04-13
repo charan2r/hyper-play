@@ -114,9 +114,14 @@ class OrderRepository {
         o.payment_status,
         o.manufacturer_id,
         o.customer_id,
-        m.name as manufacturer_name
+        m.name as manufacturer_name,
+        c.name as customer_name,
+        c.email as customer_email,
+        c.phone_number as customer_phone,
+        c.address as customer_address
        FROM orders o 
        LEFT JOIN manufacturer m ON o.manufacturer_id = m.id
+       LEFT JOIN customer c ON o.customer_id = c.id
        ORDER BY o.order_date DESC`,
     );
     return result.rows;
@@ -146,10 +151,7 @@ class OrderRepository {
     const result = await pool.query(
       `UPDATE orders 
        SET manufacturer_id = $1, 
-           status = CASE 
-             WHEN status = 'confirmed' THEN 'processing' 
-             ELSE status 
-           END
+           status = 'assigned'
        WHERE id = $2 
        RETURNING *`,
       [manufacturerId, orderId],

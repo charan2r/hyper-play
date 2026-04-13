@@ -55,6 +55,14 @@ class AdminOrderService {
   async getManufacturers() {
     return await userRepository.getActiveManufacturers();
   }
+
+  async updateOrderStatus(orderId, status) {
+    const order = await orderRepository.updateOrderStatus(orderId, status);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+    return order;
+  }
 }
 
 module.exports = new AdminOrderService();

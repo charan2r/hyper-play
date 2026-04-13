@@ -7,13 +7,19 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [role, setRole] = useState("admin"); // 'admin' or 'manufacturer'
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/admin/login", {
+      const endpoint =
+        role === "manufacturer"
+          ? "http://localhost:5000/api/manufacturer/login"
+          : "http://localhost:5000/api/admin/login";
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -29,13 +35,16 @@ const Login = () => {
         return;
       }
 
-      // Save token to localStorage
-      localStorage.setItem("adminToken", data.token);
-
-      localStorage.setItem("adminUser", JSON.stringify(data.user));
-
-      // Redirect to admin dashboard
-      window.location.href = "/admin";
+      // Save token and user based on role
+      if (role === "manufacturer") {
+        localStorage.setItem("manufacturerToken", data.token);
+        localStorage.setItem("manufacturerUser", JSON.stringify(data.user));
+        window.location.href = "/manufacturer";
+      } else {
+        localStorage.setItem("adminToken", data.token);
+        localStorage.setItem("adminUser", JSON.stringify(data.user));
+        window.location.href = "/admin";
+      }
     } catch (err) {
       console.error("Login error:", err);
       alert("Something went wrong. Please try again.");
@@ -60,9 +69,6 @@ const Login = () => {
             <div className="max-w-xs mx-auto w-full">
               {/* Logo and Header */}
               <div className="text-center mb-4">
-                <div className="inline-flex items-center justify-center w-35 h-35 mb-2">
-                  <img className="text-white" src="/fit.jpg" alt="Logo" />
-                </div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
                   Login
                 </h1>
@@ -70,6 +76,49 @@ const Login = () => {
 
               {/* Login Form */}
               <div className="space-y-6">
+                {/* Role Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Login As
+                  </label>
+                  <div className="flex gap-4">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="admin"
+                        name="role"
+                        value="admin"
+                        checked={role === "admin"}
+                        onChange={(e) => setRole(e.target.value)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <label
+                        htmlFor="admin"
+                        className="ml-2 block text-sm text-gray-700 cursor-pointer"
+                      >
+                        Admin
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="manufacturer"
+                        name="role"
+                        value="manufacturer"
+                        checked={role === "manufacturer"}
+                        onChange={(e) => setRole(e.target.value)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <label
+                        htmlFor="manufacturer"
+                        className="ml-2 block text-sm text-gray-700 cursor-pointer"
+                      >
+                        Manufacturer
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Email Field */}
                 <div>
                   <label

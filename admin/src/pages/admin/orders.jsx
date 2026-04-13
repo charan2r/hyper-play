@@ -99,6 +99,34 @@ const Orders = () => {
     }
   };
 
+  // update order status
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/admin/orders/${orderId}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        fetchOrders();
+        alert(data.message);
+      } else {
+        alert(data.error || "Failed to update order status");
+      }
+    } catch (err) {
+      console.error("Error updating order status:", err);
+      alert("Failed to update order status");
+    }
+  };
+
   // Filter orders based on current filters
   const filteredOrders = orders.filter((order) => {
     const matchesStatus = !filters.status || order.status === filters.status;
@@ -114,7 +142,7 @@ const Orders = () => {
   const orderData = filteredOrders;
 
   const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case "delivered":
         return "bg-green-100 text-green-800";
       case "shipped":
@@ -125,6 +153,12 @@ const Orders = () => {
         return "bg-orange-100 text-orange-800";
       case "cancelled":
         return "bg-red-100 text-red-800";
+      case "assigned":
+        return "bg-blue-100 text-blue-800";
+      case "in_production":
+        return "bg-yellow-100 text-yellow-800";
+      case "production_completed":
+        return "bg-green-100 text-green-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -239,7 +273,9 @@ const Orders = () => {
                     orderData.filter(
                       (order) =>
                         order.status === "confirmed" ||
-                        order.status === "processing",
+                        order.status === "processing" ||
+                        order.status === "assigned" ||
+                        order.status === "in_production",
                     ).length
                   }
                 </p>
@@ -252,8 +288,12 @@ const Orders = () => {
                 </h3>
                 <p className="text-2xl font-bold text-green-600">
                   {
-                    orderData.filter((order) => order.status === "delivered")
-                      .length
+                    orderData.filter(
+                      (order) =>
+                        order.status === "delivered" ||
+                        order.status === "production_completed" ||
+                        order.status === "shipped",
+                    ).length
                   }
                 </p>
                 <p className="text-sm text-gray-500">Successfully completed</p>
@@ -302,9 +342,11 @@ const Orders = () => {
                     >
                       <option value="">All</option>
                       <option value="processing">Processing</option>
-                      <option value="processing">Assigned</option>
-                      <option value="processing">In Production</option>
-                      <option value="processing">Production Completed</option>
+                      <option value="assigned">Assigned</option>
+                      <option value="in_production">In Production</option>
+                      <option value="production_completed">
+                        Production Completed
+                      </option>
                       <option value="shipped">Shipped</option>
                       <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
@@ -580,14 +622,19 @@ const Orders = () => {
                           <td className="py-3 px-4">
                             <select
                               value={order.status}
+                              onChange={(e) =>
+                                handleStatusChange(order.id, e.target.value)
+                              }
                               className={`px-2 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${getStatusColor(
                                 order.status,
                               )}`}
                             >
                               <option value="processing">Processing</option>
-                              <option value="processing">Assigned</option>
-                              <option value="processing">In Production</option>
-                              <option value="processing">
+                              <option value="assigned">Assigned</option>
+                              <option value="in_production">
+                                In Production
+                              </option>
+                              <option value="production_completed">
                                 Production Completed
                               </option>
                               <option value="shipped">Shipped</option>
@@ -656,7 +703,7 @@ const Orders = () => {
 
       {/* Manufacturer Assignment Modal */}
       {showAssignModal && selectedOrderForAssignment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold mb-4">
               Assign Manufacturer to Order #{selectedOrderForAssignment.id}

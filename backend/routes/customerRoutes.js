@@ -3,6 +3,9 @@ const router = express.Router();
 const customerController = require("../controllers/customerController");
 const { verifyToken, requireRole } = require("../middleware/auth");
 
+// Get all customers (admin only)
+router.get("/all", customerController.getAllCustomers);
+
 router.get("/products", customerController.getProducts);
 
 /*router.post(
@@ -22,14 +25,14 @@ router.get(
   "/cart",
   verifyToken,
   requireRole("customer"),
-  customerController.getCart
+  customerController.getCart,
 );
 
 router.post(
   "/cart",
   verifyToken,
   requireRole("customer"),
-  customerController.addToCart
+  customerController.addToCart,
 );
 
 module.exports = router;

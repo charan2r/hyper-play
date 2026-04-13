@@ -70,3 +70,32 @@ exports.getManufacturers = async (req, res) => {
     });
   }
 };
+
+// Update order status
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        error: "Status is required",
+      });
+    }
+
+    const order = await adminOrderService.updateOrderStatus(orderId, status);
+
+    res.json({
+      success: true,
+      message: `Order status updated to ${status}`,
+      data: order,
+    });
+  } catch (error) {
+    const statusCode = error.message.includes("not found") ? 404 : 400;
+    res.status(statusCode).json({
+      success: false,
+      error: error.message || "Failed to update order status",
+    });
+  }
+};

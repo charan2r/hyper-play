@@ -5,8 +5,10 @@ const {
   loginCustomer,
   loginAdmin,
   loginManufacturer,
+  getAdminProfile,
 } = require("../controllers/authController");
 const { authLimiter } = require("../middleware/rateLimiter");
+const { verifyToken, requireRole } = require("../middleware/auth");
 const validate = require("../middleware/validate");
 const {
   registerCustomerSchema,
@@ -24,6 +26,12 @@ router.post("/login", authLimiter, validate(loginSchema), loginCustomer);
 
 // Admin
 router.post("/admin/login", authLimiter, validate(loginSchema), loginAdmin);
+router.get(
+  "/admin/profile",
+  verifyToken,
+  requireRole("admin"),
+  getAdminProfile,
+);
 
 // Manufacturer
 router.post(

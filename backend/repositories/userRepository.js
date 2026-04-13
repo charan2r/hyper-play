@@ -102,6 +102,14 @@ class UserRepository {
     );
     return result.rows[0];
   }
+
+  async getAdminById(adminId) {
+    const result = await pool.query(
+      "SELECT id, email, first_name, last_name, phone, profile_picture FROM admin WHERE id = $1",
+      [adminId],
+    );
+    return result.rows[0];
+  }
 }
 
 module.exports = new UserRepository();

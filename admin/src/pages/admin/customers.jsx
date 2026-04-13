@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Download,
@@ -14,40 +14,43 @@ import {
 } from "lucide-react";
 
 const Customers = () => {
+  const [customers, setCustomers] = useState([]);
   const [selectedCustomers, setSelectedCustomers] = useState([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const customerData = [
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john.smith@email.com",
-      address: "123 Main St, Colombo, Sri Lanka",
-      phone_number: "0717205943",
-      totalOrders: 12,
-    },
-    {
-      id: 2,
-      name: "Charan Romi",
-      email: "charan5@email.com",
-      address: "123 Main St, Colombo, Sri Lanka",
-      phone_number: "0717205943",
-      totalOrders: 10,
-    },
-  ];
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("http://localhost:5000/api/customer/all");
+      const data = await response.json();
+
+      if (data.success) {
+        setCustomers(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching customers:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedCustomers(customerData.map((customer) => customer.id));
+      setSelectedCustomers(customers.map((customer) => customer.id));
     } else {
       setSelectedCustomers([]);
     }
-    setShowBulkActions(checked && customerData.length > 0);
+    setShowBulkActions(checked && customers.length > 0);
   };
 
   const handleSelectCustomer = (customerId, checked) => {
@@ -97,7 +100,7 @@ const Customers = () => {
                       Total Customers
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      {customerData.length}
+                      {customers.length}
                     </p>
                     <p className="text-sm text-gray-500">Active Customers</p>
                   </div>
@@ -160,7 +163,7 @@ const Customers = () => {
               <div className="p-4">
                 {/* Mobile Cards View */}
                 <div className="lg:hidden space-y-4">
-                  {customerData.slice(0, 5).map((customer, index) => (
+                  {customers.slice(0, 5).map((customer, index) => (
                     <div
                       key={index}
                       className="bg-gray-50 rounded-lg p-4 border"
@@ -174,7 +177,7 @@ const Customers = () => {
                             onChange={(e) =>
                               handleSelectCustomer(
                                 customer.id,
-                                e.target.checked
+                                e.target.checked,
                               )
                             }
                           />
@@ -188,23 +191,9 @@ const Customers = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="flex space-x-1">
-                          <button className="p-1 text-green-600 hover:text-green-800">
-                            <MessageCircle className="h-4 w-4" />
-                          </button>
-                          <button className="p-1 text-gray-600 hover:text-gray-800">
-                            <Edit className="h-4 w-4" />
-                          </button>
-                        </div>
                       </div>
 
                       <div className="space-y-1 text-sm text-gray-600">
-                        <p className="flex items-center">
-                          <ShoppingBag className="h-3 w-3 mr-1" />
-                          <span className="font-medium">Orders:</span>{" "}
-                          {customer.totalOrders}
-                        </p>
-
                         <p className="flex items-center">
                           <Phone className="h-3 w-3 mr-1" />
                           <span className="font-medium">Phone:</span>{" "}
@@ -226,8 +215,8 @@ const Customers = () => {
                             className="mr-2"
                             onChange={(e) => handleSelectAll(e.target.checked)}
                             checked={
-                              selectedCustomers.length ===
-                                customerData.length && customerData.length > 0
+                              selectedCustomers.length === customers.length &&
+                              customers.length > 0
                             }
                           />
                           Name
@@ -236,22 +225,17 @@ const Customers = () => {
                         <th className="text-left py-3 px-4 font-medium text-gray-600">
                           Email
                         </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-600">
-                          Total Orders
-                        </th>
+
                         <th className="text-left py-3 px-4 font-medium text-gray-600">
                           Contact Number
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-600">
                           Address
                         </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-600">
-                          Actions
-                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {customerData.map((customer, index) => (
+                      {customers.map((customer, index) => (
                         <tr
                           key={index}
                           className={`border-b border-gray-100 hover:bg-gray-50 ${
@@ -266,12 +250,12 @@ const Customers = () => {
                                 type="checkbox"
                                 className="mr-3"
                                 checked={selectedCustomers.includes(
-                                  customer.id
+                                  customer.id,
                                 )}
                                 onChange={(e) =>
                                   handleSelectCustomer(
                                     customer.id,
-                                    e.target.checked
+                                    e.target.checked,
                                   )
                                 }
                               />
@@ -287,11 +271,7 @@ const Customers = () => {
                               {customer.email}
                             </div>
                           </td>
-                          <td className="py-3 px-4">
-                            <div className="font-medium text-gray-500">
-                              {customer.totalOrders}
-                            </div>
-                          </td>
+
                           <td className="py-3 px-4">
                             <div className="font-medium text-gray-500">
                               {customer.phone_number}
@@ -300,30 +280,6 @@ const Customers = () => {
                           <td className="py-3 px-4">
                             <div className="font-medium text-gray-500">
                               {customer.address}
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-4">
-                            <div className="flex space-x-2">
-                              <button
-                                className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded"
-                                title="Send Message"
-                              >
-                                <MessageCircle className="h-4 w-4" />
-                              </button>
-
-                              <button
-                                className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded"
-                                title="Edit Customer"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                              <button
-                                className="p-1 text-red-600 hover:text-redy-800 hover:bg-red-50 rounded"
-                                title="Delete Customer"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
                             </div>
                           </td>
                         </tr>
@@ -338,11 +294,10 @@ const Customers = () => {
                     Showing{" "}
                     {Math.min(
                       (currentPage - 1) * itemsPerPage + 1,
-                      customerData.length
+                      customers.length,
                     )}{" "}
-                    to{" "}
-                    {Math.min(currentPage * itemsPerPage, customerData.length)}{" "}
-                    of {customerData.length} customers
+                    to {Math.min(currentPage * itemsPerPage, customers.length)}{" "}
+                    of {customers.length} customers
                     {selectedCustomers.length > 0 && (
                       <span className="ml-4 text-blue-600">
                         ({selectedCustomers.length} selected)
@@ -357,51 +312,54 @@ const Customers = () => {
                     >
                       Previous
                     </button>
-                    {[
-                      ...Array(Math.ceil(customerData.length / itemsPerPage)),
-                    ].map((_, i) => {
-                      const pageNumber = i + 1;
-                      const totalPages = Math.ceil(
-                        customerData.length / itemsPerPage
-                      );
+                    {[...Array(Math.ceil(customers.length / itemsPerPage))].map(
+                      (_, i) => {
+                        const pageNumber = i + 1;
+                        const totalPages = Math.ceil(
+                          customers.length / itemsPerPage,
+                        );
 
-                      // Show first page, last page, current page, and pages around current
-                      if (
-                        pageNumber === 1 ||
-                        pageNumber === totalPages ||
-                        (pageNumber >= currentPage - 1 &&
-                          pageNumber <= currentPage + 1)
-                      ) {
-                        return (
-                          <button
-                            key={pageNumber}
-                            className={`px-3 py-1 text-sm rounded ${
-                              currentPage === pageNumber
-                                ? "bg-blue-600 text-white"
-                                : "border border-gray-300 hover:bg-gray-50"
-                            }`}
-                            onClick={() => setCurrentPage(pageNumber)}
-                          >
-                            {pageNumber}
-                          </button>
-                        );
-                      } else if (
-                        pageNumber === currentPage - 2 ||
-                        pageNumber === currentPage + 2
-                      ) {
-                        return (
-                          <span key={pageNumber} className="px-2 text-gray-500">
-                            ...
-                          </span>
-                        );
-                      }
-                      return null;
-                    })}
+                        // Show first page, last page, current page, and pages around current
+                        if (
+                          pageNumber === 1 ||
+                          pageNumber === totalPages ||
+                          (pageNumber >= currentPage - 1 &&
+                            pageNumber <= currentPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={pageNumber}
+                              className={`px-3 py-1 text-sm rounded ${
+                                currentPage === pageNumber
+                                  ? "bg-blue-600 text-white"
+                                  : "border border-gray-300 hover:bg-gray-50"
+                              }`}
+                              onClick={() => setCurrentPage(pageNumber)}
+                            >
+                              {pageNumber}
+                            </button>
+                          );
+                        } else if (
+                          pageNumber === currentPage - 2 ||
+                          pageNumber === currentPage + 2
+                        ) {
+                          return (
+                            <span
+                              key={pageNumber}
+                              className="px-2 text-gray-500"
+                            >
+                              ...
+                            </span>
+                          );
+                        }
+                        return null;
+                      },
+                    )}
                     <button
                       className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
                       disabled={
                         currentPage ===
-                        Math.ceil(customerData.length / itemsPerPage)
+                        Math.ceil(customers.length / itemsPerPage)
                       }
                       onClick={() => setCurrentPage(currentPage + 1)}
                     >

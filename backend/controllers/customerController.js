@@ -142,3 +142,23 @@ exports.addToCart = async (req, res) => {
     res.status(500).json({ error: "Failed to add to cart" });
   }
 };
+
+// Get all customers for admin
+exports.getAllCustomers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, email, phone_number, address FROM customer ORDER BY id DESC`,
+    );
+
+    res.json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Failed to fetch customers",
+    });
+  }
+};

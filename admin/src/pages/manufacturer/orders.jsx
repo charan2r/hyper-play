@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import {
   Search,
@@ -30,7 +31,7 @@ const Orders = () => {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+              Authorization: `Bearer ${localStorage.getItem("manufacturerToken")}`,
             },
           },
         );
@@ -39,20 +40,19 @@ const Orders = () => {
         }
         const orders = await response.json();
 
-        const newOrders = orders.map((order) => ({
+        const newOrders = orders.data.map((order) => ({
           id: order.order_id,
+          orderId: order.order_id,
+          customerId: order.customer_id,
+          totalAmount: order.total_amount,
+          orderDate: order.order_date,
+          paymentStatus: order.payment_status,
           products: Array.isArray(order.products) ? order.products : [],
           totalQuantity: order.total_quantity,
           status: order.status,
-          customer: {
-            name: order.customer_name || "Unknown",
-            email: order.customer_email || "N/A",
-          },
-          assets: {
-            available: order.assets_available || false,
-            files: Array.isArray(order.asset_files) ? order.asset_files : [],
-            templates: order.template_count || 0,
-          },
+          manufacturerId: order.manufacturer_id,
+          manufacturerName: order.manufacturer_name,
+          manufacturerEmail: order.manufacturer_email,
         }));
         setOrders(newOrders);
       } catch (err) {
@@ -70,7 +70,7 @@ const Orders = () => {
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+            Authorization: `Bearer ${localStorage.getItem("manufacturerToken")}`,
           },
         },
       );
@@ -98,17 +98,13 @@ const Orders = () => {
 
   // Helper functions for production status styling
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Ready to Ship":
-        return "bg-green-100 text-green-800";
-
-      case "In Production":
+    switch (status?.toLowerCase()) {
+      case "assigned":
+        return "bg-blue-100 text-blue-800";
+      case "in_production":
         return "bg-yellow-100 text-yellow-800";
-
-      case "Design Review":
-        return "bg-purple-100 text-purple-800";
-      case "On Hold":
-        return "bg-red-100 text-red-800";
+      case "production_completed":
+        return "bg-green-100 text-green-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -128,17 +124,13 @@ const Orders = () => {
   };
 
   const getStatusIcon = (status) => {
-    switch (status) {
-      case "Ready to Ship":
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-
-      case "In Production":
+    switch (status?.toLowerCase()) {
+      case "assigned":
+        return <Clock className="h-4 w-4 text-blue-600" />;
+      case "in_production":
         return <Package className="h-4 w-4 text-yellow-600" />;
-
-      case "Design Review":
-        return <FileText className="h-4 w-4 text-purple-600" />;
-      case "On Hold":
-        return <XCircle className="h-4 w-4 text-red-600" />;
+      case "production_completed":
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       default:
         return <Clock className="h-4 w-4 text-gray-600" />;
     }
@@ -188,9 +180,37 @@ const Orders = () => {
     setShowBulkActions(false);
   };
 
-  const handleStatusChange = (orderId, newStatus) => {
-    console.log(`Changing production order ${orderId} status to ${newStatus}`);
-    // Implement status change logic here
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/admin/orders/${orderId}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("manufacturerToken")}`,
+          },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update orders in state
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.orderId === orderId ? { ...order, status: newStatus } : order,
+          ),
+        );
+        alert(data.message || "Status updated successfully");
+      } else {
+        alert(data.error || "Failed to update status");
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+      alert("Failed to update status");
+    }
   };
 
   return (
@@ -224,8 +244,8 @@ const Orders = () => {
                   {
                     orders.filter(
                       (order) =>
-                        order.status === "In Production" ||
-                        order.status === "Quality Check",
+                        order.status === "assigned" ||
+                        order.status === "in_production",
                     ).length
                   }
                 </p>
@@ -237,28 +257,22 @@ const Orders = () => {
                   Ready to Ship
                 </h3>
                 <p className="text-2xl font-bold text-green-600">
-                  {
-                    orders.filter((order) => order.status === "Ready to Ship")
-                      .length
-                  }
+                  {orders.filter((order) => order.status === "shipped").length}
                 </p>
                 <p className="text-sm text-gray-500">Completed orders</p>
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <h3 className="text-sm font-medium text-gray-600 mb-2">
-                  Urgent Orders
+                  Total Amount
                 </h3>
-                <p className="text-2xl font-bold text-red-600">
-                  {
-                    orders.filter(
-                      (order) =>
-                        order.priority === "High" &&
-                        getDaysUntilDeadline(order.deadline) <= 3,
-                    ).length
-                  }
+                <p className="text-2xl font-bold text-blue-600">
+                  Rs.{" "}
+                  {orders
+                    .reduce((sum, order) => sum + order.totalAmount, 0)
+                    .toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-500">Due within 3 days</p>
+                <p className="text-sm text-gray-500">All orders value</p>
               </div>
             </div>
 
@@ -286,12 +300,11 @@ const Orders = () => {
                       }
                     >
                       <option value="">All Status</option>
-                      <option value="Materials Sourcing">
-                        Materials Sourcing
+                      <option value="assigned">Assigned</option>
+                      <option value="in_production">In Production</option>
+                      <option value="production_completed">
+                        Production Completed
                       </option>
-                      <option value="In Production">In Production</option>
-                      <option value="Ready to Ship">Ready to Ship</option>
-                      <option value="On Hold">On Hold</option>
                     </select>
 
                     <select
@@ -304,7 +317,7 @@ const Orders = () => {
                         })
                       }
                     >
-                      <option value="">All Priority</option>
+                      <option value="">All </option>
                       <option value="High">High Priority</option>
                       <option value="Medium">Medium Priority</option>
                       <option value="Low">Low Priority</option>
@@ -361,22 +374,20 @@ const Orders = () => {
                           <div>
                             <div className="font-medium text-gray-900 flex items-center">
                               {getStatusIcon(order.status)}
-                              <span className="ml-2">{order.id}</span>
+                              <span className="ml-2">#{order.orderId}</span>
                             </div>
                             <div className="text-sm text-gray-500">
-                              {order.customer.name}
+                              Customer ID: {order.customerId}
                             </div>
                           </div>
                         </div>
                         <div className="flex space-x-1">
-                          {order.assets.available && (
-                            <button
-                              onClick={() => handleDownloadAssets(order.id)}
-                              className="p-1 text-blue-600 hover:text-blue-800"
-                            >
-                              <Download className="h-4 w-4" />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleDownloadAssets(order.orderId)}
+                            className="p-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                       <div className="flex items-center justify-between mb-2">
@@ -387,12 +398,8 @@ const Orders = () => {
                         >
                           {order.status}
                         </span>
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full border ${getPriorityColor(
-                            order.priority,
-                          )}`}
-                        >
-                          {order.priority} Priority
+                        <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                          {order.paymentStatus}
                         </span>
                       </div>
                       <div className="space-y-1 text-sm text-gray-600">
@@ -400,16 +407,17 @@ const Orders = () => {
                           <span className="font-medium">Quantity:</span>{" "}
                           {order.totalQuantity}
                         </p>
-                        <p className={getDeadlineColor(order.deadline)}>
-                          <span className="font-medium">Deadline:</span>{" "}
-                          {order.deadline}
-                          <span className="ml-2">
-                            ({getDaysUntilDeadline(order.deadline)} days)
-                          </span>
+                        <p>
+                          <span className="font-medium">Amount:</span> Rs.
+                          {order.totalAmount}
+                        </p>
+                        <p>
+                          <span className="font-medium">Date:</span>{" "}
+                          {new Date(order.orderDate).toLocaleDateString()}
                         </p>
                         <p>
                           <span className="font-medium">Product:</span>{" "}
-                          {order.products[0].name}
+                          {order.products[0]?.product_name || "N/A"}
                         </p>
                       </div>
                     </div>
@@ -444,10 +452,10 @@ const Orders = () => {
                           Status
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-700">
-                          Customer
+                          Amount
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-700">
-                          Assets
+                          Order Date
                         </th>
                       </tr>
                     </thead>
@@ -499,54 +507,32 @@ const Orders = () => {
                             <select
                               value={order.status}
                               onChange={(e) =>
-                                handleStatusChange(order.id, e.target.value)
+                                handleStatusChange(
+                                  order.orderId,
+                                  e.target.value,
+                                )
                               }
                               className={`px-2 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${getStatusColor(
                                 order.status,
                               )}`}
                             >
-                              <option value="Design Review">
-                                Design Review
-                              </option>
-
-                              <option value="In Production">
+                              <option value="assigned">Assigned</option>
+                              <option value="in_production">
                                 In Production
                               </option>
-
-                              <option value="Ready to Ship">
-                                Ready to Ship
+                              <option value="production_completed">
+                                Production Completed
                               </option>
-                              <option value="On Hold">On Hold</option>
                             </select>
                           </td>
                           <td className="py-3 px-4">
-                            <div>
-                              <div className="font-medium text-gray-900 flex items-center">
-                                <User className="h-3 w-3 mr-1" />
-                                {order.customer.name}
-                              </div>
-
-                              <div className="text-xs text-gray-500">
-                                {order.customer.email}
-                              </div>
+                            <div className="font-bold text-gray-900 text-base">
+                              Rs. {order.totalAmount}
                             </div>
                           </td>
                           <td className="py-3 px-4">
-                            <div className="flex flex-col space-y-2">
-                              {order.assets.available ? (
-                                <button
-                                  onClick={() => handleDownloadAssets(order.id)}
-                                  className="flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100 transition-colors"
-                                >
-                                  <Download className="h-3 w-3 mr-1" />
-                                  {order.assets.files.length} files
-                                </button>
-                              ) : (
-                                <div className="flex items-center px-2 py-1 bg-red-50 text-red-700 rounded text-xs">
-                                  <AlertTriangle className="h-3 w-3 mr-1" />
-                                  Pending
-                                </div>
-                              )}
+                            <div className="text-sm text-gray-600">
+                              {new Date(order.orderDate).toLocaleDateString()}
                             </div>
                           </td>
                         </tr>

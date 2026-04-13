@@ -81,3 +81,42 @@ exports.loginManufacturer = async (req, res) => {
     });
   }
 };
+
+// Get Admin Profile
+exports.getAdminProfile = async (req, res) => {
+  try {
+    const adminId = req.user?.id;
+
+    if (!adminId) {
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
+    }
+
+    const admin = await require("../repositories/userRepository").getAdminById(
+      adminId,
+    );
+
+    if (!admin) {
+      return res.status(404).json({
+        error: "Admin not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: admin.id,
+        email: admin.email,
+        first_name: admin.first_name,
+        last_name: admin.last_name,
+        phone: admin.phone,
+        profile_picture: admin.profile_picture,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message || "Failed to fetch profile",
+    });
+  }
+};
