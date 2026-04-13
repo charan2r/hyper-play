@@ -30,14 +30,18 @@ const AddProduct = ({ onClose, onSave }) => {
     e.preventDefault();
     const form = e.target;
     const formData = new FormData(form);
+    const token = localStorage.getItem("adminToken");
 
     try {
       const response = await fetch(
         "http://localhost:5000/api/admin/products/add",
         {
           method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) throw new Error("Failed to add product");
@@ -160,12 +164,11 @@ const AddProduct = ({ onClose, onSave }) => {
               </label>
               <select
                 name="status"
-                defaultValue="Active"
+                defaultValue="active"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Out of Stock">Out of Stock</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
               </select>
             </div>
             <div>

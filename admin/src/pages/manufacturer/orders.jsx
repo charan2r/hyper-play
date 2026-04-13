@@ -30,9 +30,9 @@ const Orders = () => {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
             },
-          }
+          },
         );
         if (!response.ok) {
           throw new Error("Failed to fetch orders");
@@ -70,9 +70,9 @@ const Orders = () => {
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -225,7 +225,7 @@ const Orders = () => {
                     orders.filter(
                       (order) =>
                         order.status === "In Production" ||
-                        order.status === "Quality Check"
+                        order.status === "Quality Check",
                     ).length
                   }
                 </p>
@@ -254,7 +254,7 @@ const Orders = () => {
                     orders.filter(
                       (order) =>
                         order.priority === "High" &&
-                        getDaysUntilDeadline(order.deadline) <= 3
+                        getDaysUntilDeadline(order.deadline) <= 3,
                     ).length
                   }
                 </p>
@@ -382,14 +382,14 @@ const Orders = () => {
                       <div className="flex items-center justify-between mb-2">
                         <span
                           className={`px-2 py-1 text-xs rounded-full flex items-center ${getStatusColor(
-                            order.status
+                            order.status,
                           )}`}
                         >
                           {order.status}
                         </span>
                         <span
                           className={`px-2 py-1 text-xs rounded-full border ${getPriorityColor(
-                            order.priority
+                            order.priority,
                           )}`}
                         >
                           {order.priority} Priority
@@ -502,7 +502,7 @@ const Orders = () => {
                                 handleStatusChange(order.id, e.target.value)
                               }
                               className={`px-2 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${getStatusColor(
-                                order.status
+                                order.status,
                               )}`}
                             >
                               <option value="Design Review">

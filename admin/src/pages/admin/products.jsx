@@ -79,7 +79,7 @@ const Products = () => {
   useEffect(() => {
     fetch("http://localhost:5000/api/admin/products")
       .then((res) => res.json())
-      .then((data) => setProductData(data))
+      .then((data) => setProductData(data.data))
       .catch((err) => console.error("Error fetching products:", err));
   }, []);
 
@@ -164,27 +164,17 @@ const Products = () => {
                   <div className="flex items-center space-x-2">
                     <select
                       className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={filters.category}
-                      onChange={(e) =>
-                        setFilters({ ...filters, category: e.target.value })
-                      }
-                    >
-                      <option value="">All Types</option>
-                      <option value="Men">Men</option>
-                      <option value="Women">Women</option>
-                      <option value="Kids">Kids</option>
-                    </select>
-
-                    <select
-                      className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={filters.sport}
                       onChange={(e) =>
                         setFilters({ ...filters, sport: e.target.value })
                       }
                     >
-                      <option value="">All Sports</option>
+                      <option value="">All</option>
                       <option value="Cricket">Cricket</option>
                       <option value="Football">Football</option>
+                      <option value="Football">Rugby</option>
+                      <option value="Football">Volleyball</option>
+                      <option value="Football">Hockey</option>
                       <option value="Basketball">Basketball</option>
                     </select>
 
@@ -195,7 +185,7 @@ const Products = () => {
                         setFilters({ ...filters, status: e.target.value })
                       }
                     >
-                      <option value="">All Status</option>
+                      <option value="">All</option>
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
                       <option value="Out of Stock">Out of Stock</option>
@@ -289,7 +279,7 @@ const Products = () => {
                         </p>
                         <span
                           className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                            product.status
+                            product.status,
                           )}`}
                         >
                           {product.status}
@@ -371,7 +361,7 @@ const Products = () => {
                                 onChange={(e) =>
                                   handleSelectProduct(
                                     product.id,
-                                    e.target.checked
+                                    e.target.checked,
                                   )
                                 }
                               />
@@ -415,7 +405,7 @@ const Products = () => {
                                 handleStatusChange(product.id, e.target.value)
                               }
                               className={` py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${getStatusColor(
-                                product.status
+                                product.status,
                               )}`}
                             >
                               <option value="Active">Active</option>

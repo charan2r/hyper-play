@@ -45,7 +45,7 @@ const Orders = () => {
       const data = await response.json();
 
       if (data.success) {
-        setOrders(data.orders);
+        setOrders(data.data);
       }
     } catch (err) {
       console.error("Error fetching orders:", err);
@@ -58,12 +58,12 @@ const Orders = () => {
   const fetchManufacturers = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/admin/get-manufacturers"
+        "http://localhost:5000/api/admin/get-manufacturers",
       );
       const data = await response.json();
 
       if (data.success) {
-        setManufacturers(data.manufacturers);
+        setManufacturers(data.data);
       }
     } catch (err) {
       console.error("Error fetching manufacturers:", err);
@@ -81,7 +81,7 @@ const Orders = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ manufacturer_id: manufacturerId }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -121,7 +121,6 @@ const Orders = () => {
         return "bg-blue-100 text-blue-800";
       case "processing":
         return "bg-yellow-100 text-yellow-800";
-      case "confirmed":
       case "pending":
         return "bg-orange-100 text-orange-800";
       case "cancelled":
@@ -240,7 +239,7 @@ const Orders = () => {
                     orderData.filter(
                       (order) =>
                         order.status === "confirmed" ||
-                        order.status === "processing"
+                        order.status === "processing",
                     ).length
                   }
                 </p>
@@ -270,7 +269,7 @@ const Orders = () => {
                     .filter((order) => order.payment_status === "Paid")
                     .reduce(
                       (sum, order) => sum + parseFloat(order.total_amount || 0),
-                      0
+                      0,
                     )
                     .toLocaleString()}
                 </p>
@@ -301,9 +300,11 @@ const Orders = () => {
                         setFilters({ ...filters, status: e.target.value })
                       }
                     >
-                      <option value="">All Status</option>
-                      <option value="confirmed">Confirmed</option>
+                      <option value="">All</option>
                       <option value="processing">Processing</option>
+                      <option value="processing">Assigned</option>
+                      <option value="processing">In Production</option>
+                      <option value="processing">Production Completed</option>
                       <option value="shipped">Shipped</option>
                       <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
@@ -319,7 +320,7 @@ const Orders = () => {
                         })
                       }
                     >
-                      <option value="">Payment Status</option>
+                      <option value="">All</option>
                       <option value="Paid">Paid</option>
                       <option value="Pending">Pending</option>
                       <option value="Failed">Failed</option>
@@ -410,7 +411,7 @@ const Orders = () => {
                       <div className="flex items-center justify-between mb-2">
                         <span
                           className={`px-2 py-1 text-xs rounded-full flex items-center ${getStatusColor(
-                            order.status
+                            order.status,
                           )}`}
                         >
                           {order.status}
@@ -425,7 +426,7 @@ const Orders = () => {
                           <span className="font-medium">Payment:</span>{" "}
                           <span
                             className={`px-1 py-0.5 text-xs rounded ${getPaymentStatusColor(
-                              order.payment_status
+                              order.payment_status,
                             )}`}
                           >
                             {order.payment_status}
@@ -553,7 +554,7 @@ const Orders = () => {
                             <div className="font-bold text-gray-900">
                               Rs.
                               {parseFloat(
-                                order.total_amount || 0
+                                order.total_amount || 0,
                               ).toLocaleString()}
                             </div>
                           </td>
@@ -580,11 +581,15 @@ const Orders = () => {
                             <select
                               value={order.status}
                               className={`px-2 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${getStatusColor(
-                                order.status
+                                order.status,
                               )}`}
                             >
-                              <option value="confirmed">Confirmed</option>
                               <option value="processing">Processing</option>
+                              <option value="processing">Assigned</option>
+                              <option value="processing">In Production</option>
+                              <option value="processing">
+                                Production Completed
+                              </option>
                               <option value="shipped">Shipped</option>
                               <option value="delivered">Delivered</option>
                               <option value="cancelled">Cancelled</option>
@@ -593,7 +598,7 @@ const Orders = () => {
                           <td className="py-3 px-4">
                             <span
                               className={`px-2 py-1 text-xs rounded-full ${getPaymentStatusColor(
-                                order.payment_status
+                                order.payment_status,
                               )}`}
                             >
                               {order.payment_status}
@@ -663,7 +668,7 @@ const Orders = () => {
               <p className="text-sm text-gray-600 mb-4">
                 Total Amount: Rs.
                 {parseFloat(
-                  selectedOrderForAssignment.total_amount || 0
+                  selectedOrderForAssignment.total_amount || 0,
                 ).toLocaleString()}
               </p>
             </div>
@@ -692,7 +697,7 @@ const Orders = () => {
                   if (manufacturerId) {
                     assignManufacturer(
                       selectedOrderForAssignment.id,
-                      manufacturerId
+                      manufacturerId,
                     );
                   } else {
                     alert("Please select a manufacturer");
