@@ -1,6 +1,6 @@
 # Hyper Play - Sports E-commerce Platform
 
-A full-stack web application that enables users to design and customize sports jerseys with real-time visualization, manage orders through a multi-role system, and process payments securely.
+A full-stack web application that enables users to buy sports equipment, manage orders through a multi-role system, and process payments securely.
 
 ## Project Overview
 
