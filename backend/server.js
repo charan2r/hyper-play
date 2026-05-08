@@ -12,9 +12,26 @@ const paymentRoutes = require("./routes/paymentRoutes");
 
 const app = express();
 
-app.use(cors());
+// CORS Configuration
+const corsOptions = {
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    process.env.FRONTEND_URL || "",
+    process.env.ADMIN_URL || "",
+  ].filter(Boolean),
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-app.use("/api/payments", express.raw({ type: "application/json" }), paymentRoutes);
+app.use(cors(corsOptions));
+
+app.use(
+  "/api/payments",
+  express.raw({ type: "application/json" }),
+  paymentRoutes,
+);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static("uploads"));

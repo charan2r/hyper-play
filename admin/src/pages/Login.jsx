@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import API_URL from "../config/api";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -16,8 +17,8 @@ const Login = () => {
     try {
       const endpoint =
         role === "manufacturer"
-          ? "http://localhost:5000/api/manufacturer/login"
-          : "http://localhost:5000/api/admin/login";
+          ? `${API_URL}/api/manufacturer/login`
+          : `${API_URL}/api/admin/login`;
 
       const response = await fetch(endpoint, {
         method: "POST",
