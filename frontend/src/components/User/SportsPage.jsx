@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useParams } from "react-router-dom";
+import API_URL from "../../config/api";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { Grid, List, Search, Star } from "lucide-react";
@@ -20,9 +21,7 @@ const SportsPage = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(
-          "http://localhost:5000/api/customer/products",
-        );
+        const response = await fetch(`${API_URL}/api/customer/products`);
         if (response.ok) {
           const data = await response.json();
           console.log("Sports Products fetched:", data);
@@ -131,7 +130,7 @@ const SportsPage = () => {
             src={
               product.image
                 ? product.image.startsWith("/uploads")
-                  ? `http://localhost:5000${product.image}`
+                  ? `${API_URL}${product.image}`
                   : product.image
                 : "/assets/image.png"
             }

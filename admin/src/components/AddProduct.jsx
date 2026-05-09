@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import API_URL from "../config/api";
 
 const Categories = [
   { description: "Jerseys" },
@@ -33,16 +34,13 @@ const AddProduct = ({ onClose, onSave }) => {
     const token = localStorage.getItem("adminToken");
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/admin/products/add",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
+      const response = await fetch(`${API_URL}/api/admin/products/add`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: formData,
+      });
 
       if (!response.ok) throw new Error("Failed to add product");
 

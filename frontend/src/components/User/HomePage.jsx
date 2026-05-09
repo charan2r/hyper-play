@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import API_URL from "../../config/api";
 import { addProductToCart } from "../../utils/cartActions";
 
 const HomePage = () => {
@@ -26,7 +27,7 @@ const HomePage = () => {
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     const elements = document.querySelectorAll("[data-animate]");
@@ -42,7 +43,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/customer/products");
+        const response = await fetch(`${API_URL}/api/customer/products`);
         if (response.ok) {
           const data = await response.json();
           const productsList = data.data || data || [];
@@ -104,7 +105,7 @@ const HomePage = () => {
           src={
             product.image
               ? product.image.startsWith("/uploads")
-                ? `http://localhost:5000${product.image}`
+                ? `${API_URL}${product.image}`
                 : product.image
               : "/assets/image.png"
           }
@@ -305,10 +306,11 @@ const HomePage = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div
-            className={`text-center mb-8 sm:mb-12 transition-all duration-1000 ${isVisible["latest-lineup"]
-              ? "animate-fadeInUp"
-              : "opacity-0 translate-y-20"
-              }`}
+            className={`text-center mb-8 sm:mb-12 transition-all duration-1000 ${
+              isVisible["latest-lineup"]
+                ? "animate-fadeInUp"
+                : "opacity-0 translate-y-20"
+            }`}
           >
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               LATEST{" "}
@@ -323,22 +325,22 @@ const HomePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {loading
               ? [1, 2, 3, 4].map((item) => (
-                <div
-                  key={item}
-                  className="bg-gray-100 rounded-lg p-8 text-center animate-pulse"
-                >
-                  <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
-                </div>
-              ))
+                  <div
+                    key={item}
+                    className="bg-gray-100 rounded-lg p-8 text-center animate-pulse"
+                  >
+                    <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                  </div>
+                ))
               : latestProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  showBadge={false}
-                />
-              ))}
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    showBadge={false}
+                  />
+                ))}
           </div>
 
           {/* View All Products Button */}
@@ -371,10 +373,11 @@ const HomePage = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-green-600/70 via-gray-900/80 to-black/90"></div>
 
         <div
-          className={`relative z-10 text-center px-4 max-w-7xl mx-auto transition-all duration-1000 ${isVisible["your-fit"]
-            ? "animate-fadeInUp"
-            : "opacity-0 translate-y-20"
-            }`}
+          className={`relative z-10 text-center px-4 max-w-7xl mx-auto transition-all duration-1000 ${
+            isVisible["your-fit"]
+              ? "animate-fadeInUp"
+              : "opacity-0 translate-y-20"
+          }`}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-6">
             <span className="inline-block text-white animate-slideInLeft">
@@ -407,10 +410,11 @@ const HomePage = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div
-            className={`text-center mb-8 sm:mb-12 transition-all duration-1000 ${isVisible["best-sellers"]
-              ? "animate-fadeInUp"
-              : "opacity-0 translate-y-20"
-              }`}
+            className={`text-center mb-8 sm:mb-12 transition-all duration-1000 ${
+              isVisible["best-sellers"]
+                ? "animate-fadeInUp"
+                : "opacity-0 translate-y-20"
+            }`}
           >
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               <span className="text-green-600">BEST SELLERS</span>
@@ -424,24 +428,24 @@ const HomePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {loading
               ? [1, 2, 3, 4].map((item) => (
-                <div
-                  key={item}
-                  className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse"
-                >
-                  <div className="h-48 bg-gray-200"></div>
-                  <div className="p-4 text-center">
-                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                  <div
+                    key={item}
+                    className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse"
+                  >
+                    <div className="h-48 bg-gray-200"></div>
+                    <div className="p-4 text-center">
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                    </div>
                   </div>
-                </div>
-              ))
+                ))
               : bestSellersDisplay.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  showBadge={true}
-                />
-              ))}
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    showBadge={true}
+                  />
+                ))}
           </div>
 
           {/* View All Best Sellers Button */}

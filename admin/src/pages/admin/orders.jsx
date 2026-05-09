@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 
 import { useState, useEffect } from "react";
+import API_URL from "../../config/api";
 import {
   Search,
   Edit,
@@ -41,7 +42,7 @@ const Orders = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:5000/api/admin/orders");
+      const response = await fetch(`${API_URL}/api/admin/orders`);
       const data = await response.json();
 
       if (data.success) {
@@ -57,9 +58,7 @@ const Orders = () => {
   //get all manufacturers
   const fetchManufacturers = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/admin/get-manufacturers",
-      );
+      const response = await fetch(`${API_URL}/api/admin/get-manufacturers`);
       const data = await response.json();
 
       if (data.success) {
@@ -74,7 +73,7 @@ const Orders = () => {
   const assignManufacturer = async (orderId, manufacturerId) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/admin/orders/${orderId}/assign-manufacturer`,
+        `${API_URL}/api/admin/orders/${orderId}/assign-manufacturer`,
         {
           method: "PUT",
           headers: {
@@ -103,7 +102,7 @@ const Orders = () => {
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/admin/orders/${orderId}/status`,
+        `${API_URL}/api/admin/orders/${orderId}/status`,
         {
           method: "PUT",
           headers: {

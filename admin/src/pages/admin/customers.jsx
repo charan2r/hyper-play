@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
+import API_URL from "../../config/api";
 import {
   Search,
   Download,
@@ -31,7 +32,7 @@ const Customers = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:5000/api/customer/all");
+      const response = await fetch(`${API_URL}/api/customer/all`);
       const data = await response.json();
 
       if (data.success) {

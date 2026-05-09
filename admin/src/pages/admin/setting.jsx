@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
+import API_URL from "../../config/api";
 import { Save, Camera } from "lucide-react";
 
 const SettingsPage = () => {
@@ -27,16 +28,13 @@ const SettingsPage = () => {
     const fetchAdminProfile = async () => {
       try {
         const token = localStorage.getItem("adminToken");
-        const response = await fetch(
-          "http://localhost:5000/api/admin/profile",
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+        const response = await fetch(`${API_URL}/api/admin/profile`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-        );
+        });
 
         const data = await response.json();
 

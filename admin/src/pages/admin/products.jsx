@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
+import API_URL from "../../config/api";
 import {
   Search,
   Plus,
@@ -77,7 +78,7 @@ const Products = () => {
   };
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/admin/products")
+    fetch(`${API_URL}/api/admin/products`)
       .then((res) => res.json())
       .then((data) => setProductData(data.data))
       .catch((err) => console.error("Error fetching products:", err));

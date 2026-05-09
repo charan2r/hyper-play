@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-undef */
 import { useEffect, useState, useCallback } from "react";
+import API_URL from "../../config/api";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle, Home, ShoppingBag, Package, Clock } from "lucide-react";
 import Navbar from "./Navbar";
@@ -19,7 +20,7 @@ export default function OrderSuccessPage() {
   // 1. Fetch recent order
   const fetchRecentOrder = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/order/orders", {
+      const response = await fetch(`${API_URL}/api/order/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -45,17 +46,14 @@ export default function OrderSuccessPage() {
     }
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/order/verify-payment",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ sessionId }),
+      const response = await fetch(`${API_URL}/api/order/verify-payment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({ sessionId }),
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -149,7 +147,9 @@ export default function OrderSuccessPage() {
                   <div className="pt-2 border-t">
                     <span className="text-gray-600">Products:</span>
                     <p className="font-medium text-gray-800">
-                      {recentOrder.items.map((item) => item.product_name).join(", ")}
+                      {recentOrder.items
+                        .map((item) => item.product_name)
+                        .join(", ")}
                     </p>
                   </div>
                 )}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import API_URL from "../../config/api";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { addProductToCart } from "../../utils/cartActions";
@@ -37,9 +38,7 @@ const ProductDetailsPage = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/admin/products/${id}`,
-        );
+        const response = await fetch(`${API_URL}/api/admin/products/${id}`);
         if (response.ok) {
           const data = await response.json();
           console.log("Product fetched:", data);
@@ -173,7 +172,7 @@ const ProductDetailsPage = () => {
                 <img
                   src={
                     productImages[activeImage]?.startsWith("/uploads")
-                      ? `http://localhost:5000${productImages[activeImage]}`
+                      ? `${API_URL}${productImages[activeImage]}`
                       : productImages[activeImage] || "/assets/image.png"
                   }
                   alt={product.name}
@@ -200,7 +199,7 @@ const ProductDetailsPage = () => {
                       <img
                         src={
                           img?.startsWith("/uploads")
-                            ? `http://localhost:5000${img}`
+                            ? `${API_URL}${img}`
                             : img || "/assets/image.png"
                         }
                         alt={`${product.name} ${index + 1}`}

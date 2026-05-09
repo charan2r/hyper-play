@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import API_URL from "../../config/api";
 import { CreditCard, MapPin, User, Phone, Mail, ArrowLeft } from "lucide-react";
 import Navbar from "./Navbar";
 
@@ -49,7 +50,7 @@ export default function CheckoutPage() {
       }
 
       try {
-        const response = await fetch("http://localhost:5000/api/customer/cart", {
+        const response = await fetch(`${API_URL}/api/customer/cart`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -140,7 +141,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      const response = await fetch("http://localhost:5000/api/order/create", {
+      const response = await fetch(`${API_URL}/api/order/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -384,84 +385,84 @@ export default function CheckoutPage() {
                   </button>
                 </p>
               ) : (
-              <div className="space-y-4 mb-6">
-                {cartItems.map((item, index) => {
-                  const lineTotal =
-                    (Number(item.price) || 0) * (Number(item.quantity) || 0);
-                  return (
-                  <div
-                    key={item.id ?? item.product_id ?? index}
-                    className="flex items-center space-x-4 pb-4 border-b"
-                  >
-                    {item.design_data && (
-                      <img
-                        src={
-                          typeof item.design_data === "string"
-                            ? item.design_data
-                            : item.design_data.imageURL || item.design_data
-                        }
-                        alt="Custom Design"
-                        className="w-16 h-16 object-contain bg-gray-50 rounded"
-                        onError={(e) => {
-                          console.error(
-                            "Design image failed to load in checkout:",
-                            item.design_data,
-                          );
-                          e.target.style.display = "none";
-                        }}
-                      />
-                    )}
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800">
-                        {item.name || "Custom Sports Jersey"}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        Qty: {item.quantity}
-                      </p>
-                      {item.customer_note && (
-                        <p className="text-sm text-gray-600">
-                          {item.customer_note}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-800">
-                        Rs. {lineTotal.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
+                <div className="space-y-4 mb-6">
+                  {cartItems.map((item, index) => {
+                    const lineTotal =
+                      (Number(item.price) || 0) * (Number(item.quantity) || 0);
+                    return (
+                      <div
+                        key={item.id ?? item.product_id ?? index}
+                        className="flex items-center space-x-4 pb-4 border-b"
+                      >
+                        {item.design_data && (
+                          <img
+                            src={
+                              typeof item.design_data === "string"
+                                ? item.design_data
+                                : item.design_data.imageURL || item.design_data
+                            }
+                            alt="Custom Design"
+                            className="w-16 h-16 object-contain bg-gray-50 rounded"
+                            onError={(e) => {
+                              console.error(
+                                "Design image failed to load in checkout:",
+                                item.design_data,
+                              );
+                              e.target.style.display = "none";
+                            }}
+                          />
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-800">
+                            {item.name || "Custom Sports Jersey"}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            Qty: {item.quantity}
+                          </p>
+                          {item.customer_note && (
+                            <p className="text-sm text-gray-600">
+                              {item.customer_note}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-800">
+                            Rs. {lineTotal.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
 
               {/* Order Total */}
               {!loadingCart && cartItems.length > 0 && (
-              <div className="border-t pt-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-semibold">
-                    Rs. {orderTotal.toLocaleString()}
-                  </span>
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="font-semibold">
+                      Rs. {orderTotal.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Shipping:</span>
+                    <span className="font-semibold text-green-600">Free</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Tax:</span>
+                    <span className="font-semibold">Rs. 0</span>
+                  </div>
+                  <hr className="my-3" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-gray-800">
+                      Total:
+                    </span>
+                    <span className="text-lg font-bold text-blue-600">
+                      Rs. {orderTotal.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Shipping:</span>
-                  <span className="font-semibold text-green-600">Free</span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Tax:</span>
-                  <span className="font-semibold">Rs. 0</span>
-                </div>
-                <hr className="my-3" />
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-gray-800">
-                    Total:
-                  </span>
-                  <span className="text-lg font-bold text-blue-600">
-                    Rs. {orderTotal.toLocaleString()}
-                  </span>
-                </div>
-              </div>
               )}
 
               {/* Security Badge */}

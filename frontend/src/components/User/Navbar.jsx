@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import API_URL from "../../config/api";
 import {
   ChevronDown,
   Menu,
@@ -25,7 +26,7 @@ const Navbar = () => {
       return;
     }
     try {
-      const response = await fetch("http://localhost:5000/api/customer/cart", {
+      const response = await fetch(`${API_URL}/api/customer/cart`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -36,10 +37,10 @@ const Navbar = () => {
         return;
       }
       const data = await response.json();
-      const items = Array.isArray(data) ? data : data?.data ?? [];
+      const items = Array.isArray(data) ? data : (data?.data ?? []);
       const count = items.reduce(
         (sum, item) => sum + (Number(item.quantity) || 0),
-        0
+        0,
       );
       setCartItemCount(count);
     } catch {
@@ -189,9 +190,7 @@ const Navbar = () => {
               className="relative text-gray-900 hover:text-green-600 p-2 transition-colors"
               onClick={() => (window.location.href = "/cart")}
               aria-label={
-                cartItemCount > 0
-                  ? `Cart, ${cartItemCount} items`
-                  : "Cart"
+                cartItemCount > 0 ? `Cart, ${cartItemCount} items` : "Cart"
               }
             >
               <ShoppingCart className="h-6 w-6" />

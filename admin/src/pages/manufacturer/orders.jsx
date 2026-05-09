@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
+import API_URL from "../../config/api";
 import {
   Search,
   Download,
@@ -25,16 +26,13 @@ const Orders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await fetch(
-          "http://localhost:5000/api/manufacturer/orders",
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("manufacturerToken")}`,
-            },
+        const response = await fetch(`${API_URL}/api/manufacturer/orders`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("manufacturerToken")}`,
           },
-        );
+        });
         if (!response.ok) {
           throw new Error("Failed to fetch orders");
         }
@@ -66,7 +64,7 @@ const Orders = () => {
   const handleDownloadAssets = async (orderId) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/manufacturer/orders/${orderId}/pdf`,
+        `${API_URL}/api/manufacturer/orders/${orderId}/pdf`,
         {
           method: "GET",
           headers: {
@@ -183,7 +181,7 @@ const Orders = () => {
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/admin/orders/${orderId}/status`,
+        `${API_URL}/api/admin/orders/${orderId}/status`,
         {
           method: "PUT",
           headers: {
