@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-undef */
 import { useEffect, useState, useCallback } from "react";
 import API_URL from "../../config/api";
 import { useNavigate } from "react-router-dom";
