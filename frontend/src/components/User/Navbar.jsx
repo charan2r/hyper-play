@@ -26,7 +26,7 @@ const Navbar = () => {
       return;
     }
     try {
-      const response = await fetch(`${API_URL}/api/customer/cart`, {
+      const response = await fetch(`${API_URL}/customer/cart`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

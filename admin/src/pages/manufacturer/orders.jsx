@@ -64,7 +64,7 @@ const Orders = () => {
   const handleDownloadAssets = async (orderId) => {
     try {
       const response = await fetch(
-        `${API_URL}/api/manufacturer/orders/${orderId}/pdf`,
+        `${API_URL}/manufacturer/orders/${orderId}/pdf`,
         {
           method: "GET",
           headers: {

@@ -21,7 +21,7 @@ export default function CartPage() {
           return;
         }
 
-        const response = await fetch(`${API_URL}/api/customer/cart`, {
+        const response = await fetch(`${API_URL}/customer/cart`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,

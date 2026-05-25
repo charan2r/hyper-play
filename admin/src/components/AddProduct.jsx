@@ -34,7 +34,7 @@ const AddProduct = ({ onClose, onSave }) => {
     const token = localStorage.getItem("adminToken");
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/products/add`, {
+      const response = await fetch(`${API_URL}/admin/products/add`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

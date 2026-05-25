@@ -38,7 +38,7 @@ const ProductDetailsPage = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/admin/products/${id}`);
+        const response = await fetch(`${API_URL}/admin/products/${id}`);
         if (response.ok) {
           const data = await response.json();
           console.log("Product fetched:", data);

@@ -43,7 +43,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/customer/products`);
+        const response = await fetch(`${API_URL}/customer/products`);
         if (response.ok) {
           const data = await response.json();
           const productsList = data.data || data || [];
@@ -88,7 +88,6 @@ const HomePage = () => {
     await addProductToCart(product, 1);
   };
 
-  // Product Card: only image/title/price navigate; Add to Cart is isolated
   const ProductCard = ({ product, showBadge = false }) => (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:scale-105 relative">
       {showBadge && product.isBestseller && (

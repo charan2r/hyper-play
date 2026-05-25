@@ -32,7 +32,7 @@ const Customers = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/customer/all`);
+      const response = await fetch(`${API_URL}/customer/all`);
       const data = await response.json();
 
       if (data.success) {

@@ -17,8 +17,8 @@ const Login = () => {
     try {
       const endpoint =
         role === "manufacturer"
-          ? `${API_URL}/api/manufacturer/login`
-          : `${API_URL}/api/admin/login`;
+          ? `${API_URL}/auth/manufacturer/login`
+          : `${API_URL}/auth/admin/login`;
 
       const response = await fetch(endpoint, {
         method: "POST",

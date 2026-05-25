@@ -19,7 +19,7 @@ const ProductsPage = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/customer/products`);
+        const response = await fetch(`${API_URL}/customer/products`);
         if (response.ok) {
           const data = await response.json();
           console.log("Products fetched:", data);

@@ -78,7 +78,7 @@ const Products = () => {
   };
 
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/products`)
+    fetch(`${API_URL}/admin/products`)
       .then((res) => res.json())
       .then((data) => setProductData(data.data))
       .catch((err) => console.error("Error fetching products:", err));

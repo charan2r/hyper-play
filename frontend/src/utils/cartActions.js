@@ -1,5 +1,6 @@
 import { emitCartUpdated } from "./cartEvents";
 import { showToast } from "./toast";
+import API_URL from "../config/api";
 
 export function getProductId(product) {
   if (!product || typeof product !== "object") return null;
@@ -18,7 +19,10 @@ export async function addProductToCart(product, quantity = 1, options = {}) {
 
   const product_id = getProductId(product);
   if (product_id == null) {
-    showToast("Could not add this product. Try opening its details page.", "error");
+    showToast(
+      "Could not add this product. Try opening its details page.",
+      "error",
+    );
     return { ok: false };
   }
 
@@ -39,7 +43,7 @@ export async function addProductToCart(product, quantity = 1, options = {}) {
   }
 
   try {
-    const response = await fetch("http://localhost:5000/api/customer/cart", {
+    const response = await fetch(`${API_URL}/customer/cart`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

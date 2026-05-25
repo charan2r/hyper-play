@@ -19,7 +19,7 @@ export default function OrderSuccessPage() {
   // 1. Fetch recent order
   const fetchRecentOrder = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/order/orders`, {
+      const response = await fetch(`${API_URL}/order/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -45,7 +45,7 @@ export default function OrderSuccessPage() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/order/verify-payment`, {
+      const response = await fetch(`${API_URL}/order/verify-payment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

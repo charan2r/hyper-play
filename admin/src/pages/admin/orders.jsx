@@ -42,7 +42,7 @@ const Orders = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/admin/orders`);
+      const response = await fetch(`${API_URL}/admin/orders`);
       const data = await response.json();
 
       if (data.success) {
@@ -58,7 +58,7 @@ const Orders = () => {
   //get all manufacturers
   const fetchManufacturers = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/get-manufacturers`);
+      const response = await fetch(`${API_URL}/admin/get-manufacturers`);
       const data = await response.json();
 
       if (data.success) {
@@ -73,7 +73,7 @@ const Orders = () => {
   const assignManufacturer = async (orderId, manufacturerId) => {
     try {
       const response = await fetch(
-        `${API_URL}/api/admin/orders/${orderId}/assign-manufacturer`,
+        `${API_URL}/admin/orders/${orderId}/assign-manufacturer`,
         {
           method: "PUT",
           headers: {
@@ -102,7 +102,7 @@ const Orders = () => {
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const response = await fetch(
-        `${API_URL}/api/admin/orders/${orderId}/status`,
+        `${API_URL}/admin/orders/${orderId}/status`,
         {
           method: "PUT",
           headers: {
