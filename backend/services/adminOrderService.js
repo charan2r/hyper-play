@@ -1,5 +1,9 @@
 const orderRepository = require("../repositories/orderRepository");
 const userRepository = require("../repositories/userRepository");
+const {
+  ORDER_STATUS,
+  assertRoleCanTransition,
+} = require("./orderState");
 
 class AdminOrderService {
   async getAllOrders() {
@@ -32,35 +36,60 @@ class AdminOrderService {
     return ordersWithItems;
   }
 
-  async assignManufacturer(orderId, manufacturerId) {
-    // Check if manufacturer exists
-    const manufacturer =
-      await userRepository.getManufacturerById(manufacturerId);
+ 
+  async assignManufacturer(orderId, manufacturerId, adminId) {
+    // Check if manufacturer exists and is active
+    const manufacturer = await userRepository.getManufacturerById(manufacturerId);
     if (!manufacturer) {
       throw new Error("Manufacturer not found");
     }
 
-    // Update order with assigned manufacturer
-    const order = await orderRepository.assignManufacturer(
+    // Transition order status
+    const order = await orderRepository.transitionStatus(
       orderId,
-      manufacturerId,
+      ORDER_STATUS.ASSIGNED,
+      "admin",
+      adminId,
+      `Assigned to manufacturer: ${manufacturer.name}`,
     );
+
     if (!order) {
       throw new Error("Order not found");
     }
 
-    return order;
+    return { ...order, manufacturer };
   }
 
   async getManufacturers() {
     return await userRepository.getActiveManufacturers();
   }
 
-  async updateOrderStatus(orderId, status) {
-    const order = await orderRepository.updateOrderStatus(orderId, status);
+
+  async updateOrderStatus(orderId, status, adminId, note = null) {
+    // Validate the requested status is a known enum value
+    const validStatuses = Object.values(ORDER_STATUS);
+    if (!validStatuses.includes(status)) {
+      throw new Error(
+        `Invalid order status: '${status}'. Must be one of: ${validStatuses.join(", ")}`,
+      );
+    }
+
+    // Enforce role-based permission
+    assertRoleCanTransition("admin", status);
+
+    // Enforce state machine transition 
+    const order = await orderRepository.transitionStatus(
+      orderId,
+      status,
+      "admin",
+      adminId,
+      note,
+    );
+
     if (!order) {
       throw new Error("Order not found");
     }
+
     return order;
   }
 }

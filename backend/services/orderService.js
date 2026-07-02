@@ -1,5 +1,6 @@
 const orderRepository = require("../repositories/orderRepository");
 const productRepository = require("../repositories/productRepository");
+const { ORDER_STATUS, PAYMENT_STATUS, PAYMENT_METHOD } = require("./orderState");
 const Stripe = require("stripe");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -14,7 +15,7 @@ class OrderService {
       throw new Error("Customer information is required");
     }
 
-    // Create order
+    // Create order 
     const order = await orderRepository.create(customerId);
     const orderId = order.id;
 
@@ -38,7 +39,7 @@ class OrderService {
           price,
         );
 
-        // Add to Stripe line items
+        // Build Stripe line items
         lineItems.push({
           price_data: {
             currency: "lkr",
@@ -58,20 +59,20 @@ class OrderService {
         client_reference_id: customerId.toString(),
         customer_email: customerInfo.email,
         line_items: lineItems,
-        success_url: `${process.env.FRONTEND_URL || "http://localhost:5173"}/order-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.FRONTEND_URL || "http://localhost:5173"}/checkout`,
+        success_url: `${process.env.FRONTEND_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL}/checkout`,
         metadata: {
           order_id: orderId,
           customer_id: customerId,
         },
       });
 
-      // Create payment record with session ID
+      // Record payment intent in payments table 
       await orderRepository.createPayment(
         orderId,
         total,
-        "credit_card",
-        "pending",
+        PAYMENT_METHOD.CARD,
+        PAYMENT_STATUS.PENDING,
         session.id,
       );
 
@@ -81,13 +82,19 @@ class OrderService {
       return {
         orderId,
         sessionId: session.id,
-        redirectUrl: session.url, // Use Stripe's own redirect URL
+        redirectUrl: session.url,
         total,
-        status: "pending",
+        status: ORDER_STATUS.PENDING_PAYMENT,
       };
     } catch (error) {
-      // Clean up: update order status if payment fails
-      await orderRepository.updateOrderStatus(orderId, "failed");
+      // Transition order to CANCELLED on creation failure
+      await orderRepository.transitionStatus(
+        orderId,
+        ORDER_STATUS.CANCELLED,
+        "system",
+        null,
+        `Order creation failed: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -104,35 +111,28 @@ class OrderService {
     return order;
   }
 
-  async updateOrderStatus(orderId, status) {
-    const validStatuses = [
-      "pending",
-      "confirmed",
-      "processing",
-      "shipped",
-      "delivered",
-      "cancelled",
-      "failed",
-    ];
-    if (!validStatuses.includes(status)) {
-      throw new Error(`Invalid order status: ${status}`);
-    }
-
-    return await orderRepository.updateOrderStatus(orderId, status);
+ 
+  async updateOrderStatus(orderId, status, role = "system", actorId = null, note = null) {
+    return await orderRepository.transitionStatus(orderId, status, role, actorId, note);
   }
 
   async updatePaymentStatus(orderId, paymentStatus) {
-    const validStatuses = ["pending", "completed", "failed", "cancelled"];
+    const validStatuses = Object.values(PAYMENT_STATUS);
     if (!validStatuses.includes(paymentStatus)) {
-      throw new Error(`Invalid payment status: ${paymentStatus}`);
+      throw new Error(`Invalid payment status: ${paymentStatus}. Must be one of: ${validStatuses.join(", ")}`);
     }
-
     return await orderRepository.updatePaymentStatus(orderId, paymentStatus);
   }
 
   async processPaymentSuccess(orderId) {
-    await this.updatePaymentStatus(orderId, "completed");
-    return await this.updateOrderStatus(orderId, "confirmed");
+    await this.updatePaymentStatus(orderId, PAYMENT_STATUS.SUCCESS);
+    return await orderRepository.transitionStatus(
+      orderId,
+      ORDER_STATUS.PAID,
+      "system",
+      null,
+      "Payment confirmed",
+    );
   }
 }
 

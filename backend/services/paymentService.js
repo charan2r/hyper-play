@@ -1,4 +1,5 @@
 const orderRepository = require("../repositories/orderRepository");
+const { ORDER_STATUS, PAYMENT_STATUS } = require("./orderState");
 const Stripe = require("stripe");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -17,20 +18,28 @@ class PaymentService {
       return { success: true, orderId, note: "Payment not yet paid" };
     }
 
-    // Update payment record with Stripe payment intent ID
+    // Update payment record in payments table with Stripe payment intent ID
     if (session.payment_intent) {
       await orderRepository.updatePaymentByOrderId(
         orderId,
-        "paid",
+        PAYMENT_STATUS.SUCCESS,
         session.payment_intent,
       );
     }
 
-    // Update order status
-    await orderRepository.updateOrderStatus(orderId, "processing");
-    await orderRepository.updatePaymentStatus(orderId, "paid");
+    // Transition order
+    await orderRepository.transitionStatus(
+      orderId,
+      ORDER_STATUS.PAID,
+      "system",
+      null,
+      "Payment confirmed via Stripe webhook",
+    );
 
-    // Update product stock
+  
+    await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.SUCCESS);
+
+    // Update product stock 
     const items = await orderRepository.getOrderItems(orderId);
     for (const item of items) {
       await orderRepository.updateProductStock(item.product_id, item.quantity);
@@ -42,17 +51,24 @@ class PaymentService {
       await orderRepository.clearCart(customerId);
     }
 
-    console.log(`Order ${orderId} payment completed successfully`);
+    
     return { success: true, orderId };
   }
 
   async handlePaymentFailure(event) {
     const paymentIntent = event.data.object;
-    const orderId = paymentIntent.metadata.order_id;
+    const orderId = paymentIntent.metadata?.order_id;
 
     if (orderId) {
-      await orderRepository.updatePaymentStatus(orderId, "failed");
-      await orderRepository.updateOrderStatus(orderId, "failed");
+      await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.FAILED);
+      // Transition order
+      await orderRepository.transitionStatus(
+        orderId,
+        ORDER_STATUS.CANCELLED,
+        "system",
+        null,
+        "Payment failed via Stripe",
+      );
     }
 
     return { success: true, orderId };
@@ -84,7 +100,7 @@ class PaymentService {
     return { success: true, eventType: event.type };
   }
 
-  // Verify payment via Stripe session ID (called from redirect flow)
+  // Verify payment via Stripe session ID
   async verifySession(sessionId) {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
@@ -100,7 +116,7 @@ class PaymentService {
 
     // Check if already processed
     const order = await orderRepository.getOrderById(orderId);
-    if (order && order.payment_status === "paid") {
+    if (order && order.payment_status === PAYMENT_STATUS.SUCCESS) {
       return { success: true, orderId, alreadyProcessed: true };
     }
 
@@ -109,21 +125,26 @@ class PaymentService {
       if (session.payment_intent) {
         await orderRepository.updatePaymentByOrderId(
           orderId,
-          "paid",
+          PAYMENT_STATUS.SUCCESS,
           session.payment_intent,
         );
       }
 
-      await orderRepository.updateOrderStatus(orderId, "processing");
-      await orderRepository.updatePaymentStatus(orderId, "paid");
+      // Transition order
+      await orderRepository.transitionStatus(
+        orderId,
+        ORDER_STATUS.PAID,
+        "system",
+        null,
+        "Payment confirmed via session verify",
+      );
+
+      await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.SUCCESS);
 
       // Update product stock
       const items = await orderRepository.getOrderItems(orderId);
       for (const item of items) {
-        await orderRepository.updateProductStock(
-          item.product_id,
-          item.quantity,
-        );
+        await orderRepository.updateProductStock(item.product_id, item.quantity);
       }
 
       // Clear customer's cart
