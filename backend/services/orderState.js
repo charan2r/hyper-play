@@ -19,10 +19,25 @@ const PAYMENT_STATUS = {
   REFUNDED: "REFUNDED",
 };
 
-// Payment method status
+// Payment method
 const PAYMENT_METHOD = {
   CARD: "CARD",
   COD: "COD",
+};
+
+// Manufacturing assignment status 
+const MANUFACTURING_STATUS = {
+  ASSIGNED: "ASSIGNED",
+  IN_PRODUCTION: "IN_PRODUCTION",
+  COMPLETED: "COMPLETED",
+  REJECTED: "REJECTED",
+};
+
+// Inventory reservation status 
+const INVENTORY_RESERVATION_STATUS = {
+  RESERVED: "RESERVED",   // stock held, not yet decremented
+  RELEASED: "RELEASED",   // reservation cancelled; stock restored if it was CONVERTED
+  CONVERTED: "CONVERTED", // payment confirmed; stock permanently decremented
 };
 
 
@@ -155,6 +170,8 @@ module.exports = {
   ORDER_STATUS,
   PAYMENT_STATUS,
   PAYMENT_METHOD,
+  MANUFACTURING_STATUS,
+  INVENTORY_RESERVATION_STATUS,
   VALID_TRANSITIONS,
   ROLE_ALLOWED_TRANSITIONS,
   canTransition,

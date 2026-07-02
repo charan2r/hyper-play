@@ -23,3 +23,15 @@ exports.requireRole = (role) => {
     next();
   };
 };
+
+// Allows access if the authenticated user has listed roles
+exports.requireAnyRole = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user?.role)) {
+      return res
+        .status(403)
+        .json({ error: `Forbidden. Required role: ${roles.join(" or ")}` });
+    }
+    next();
+  };
+};
