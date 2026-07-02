@@ -21,7 +21,7 @@ const PAYMENT_STATUS = {
 
 // Payment method
 const PAYMENT_METHOD = {
-  CARD: "CARD",
+  CARD: "CREDIT_CARD",
   COD: "COD",
 };
 

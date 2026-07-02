@@ -22,7 +22,7 @@ class PaymentService {
     if (session.payment_intent) {
       await orderRepository.updatePaymentByOrderId(
         orderId,
-        PAYMENT_STATUS.SUCCESS,
+        PAYMENT_STATUS.PAID,
         session.payment_intent,
       );
     }
@@ -37,13 +37,10 @@ class PaymentService {
     );
 
   
-    await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.SUCCESS);
+    await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.PAID);
 
-    // Update product stock 
-    const items = await orderRepository.getOrderItems(orderId);
-    for (const item of items) {
-      await orderRepository.updateProductStock(item.product_id, item.quantity);
-    }
+    // Confirm inventory reservation
+    await orderRepository.confirmInventory(orderId);
 
     // Clear customer's cart
     const customerId = session.metadata.customer_id;
@@ -61,6 +58,8 @@ class PaymentService {
 
     if (orderId) {
       await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.FAILED);
+      // Release inventory reservations
+      await orderRepository.releaseInventory(orderId);
       // Transition order
       await orderRepository.transitionStatus(
         orderId,
@@ -74,6 +73,7 @@ class PaymentService {
     return { success: true, orderId };
   }
 
+  // Call Webhook
   async processWebhook(sig, body) {
     let event;
 
@@ -87,7 +87,6 @@ class PaymentService {
       throw new Error(`Webhook Error: ${error.message}`);
     }
 
-    console.log(`Stripe webhook received: ${event.type}`);
 
     if (event.type === "checkout.session.completed") {
       return await this.handleCheckoutComplete(event.data.object);
@@ -114,52 +113,14 @@ class PaymentService {
       throw new Error("No order_id found in session");
     }
 
-    // Check if already processed
+    // ONLY READ DB
     const order = await orderRepository.getOrderById(orderId);
-    if (order && order.payment_status === PAYMENT_STATUS.SUCCESS) {
-      return { success: true, orderId, alreadyProcessed: true };
-    }
-
-    // Process the payment confirmation
-    if (session.payment_status === "paid") {
-      if (session.payment_intent) {
-        await orderRepository.updatePaymentByOrderId(
-          orderId,
-          PAYMENT_STATUS.SUCCESS,
-          session.payment_intent,
-        );
-      }
-
-      // Transition order
-      await orderRepository.transitionStatus(
-        orderId,
-        ORDER_STATUS.PAID,
-        "system",
-        null,
-        "Payment confirmed via session verify",
-      );
-
-      await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.SUCCESS);
-
-      // Update product stock
-      const items = await orderRepository.getOrderItems(orderId);
-      for (const item of items) {
-        await orderRepository.updateProductStock(item.product_id, item.quantity);
-      }
-
-      // Clear customer's cart
-      const customerId = session.metadata.customer_id;
-      if (customerId) {
-        await orderRepository.clearCart(customerId);
-      }
-
-      return { success: true, orderId };
-    }
 
     return {
-      success: false,
+      success: true,
       orderId,
-      paymentStatus: session.payment_status,
+      paymentStatus: order.payment_status,
+      orderStatus: order.status,
     };
   }
 }

@@ -38,26 +38,7 @@ class AdminOrderService {
 
  
   async assignManufacturer(orderId, manufacturerId, adminId) {
-    // Check if manufacturer exists and is active
-    const manufacturer = await userRepository.getManufacturerById(manufacturerId);
-    if (!manufacturer) {
-      throw new Error("Manufacturer not found");
-    }
-
-    // Transition order status
-    const order = await orderRepository.transitionStatus(
-      orderId,
-      ORDER_STATUS.ASSIGNED,
-      "admin",
-      adminId,
-      `Assigned to manufacturer: ${manufacturer.name}`,
-    );
-
-    if (!order) {
-      throw new Error("Order not found");
-    }
-
-    return { ...order, manufacturer };
+    return await orderRepository.assignManufacturerWithTransaction(orderId, manufacturerId, adminId);
   }
 
   async getManufacturers() {
@@ -77,7 +58,7 @@ class AdminOrderService {
     // Enforce role-based permission
     assertRoleCanTransition("admin", status);
 
-    // Enforce state machine transition 
+    // Enforce state machine transition
     const order = await orderRepository.transitionStatus(
       orderId,
       status,
@@ -88,6 +69,10 @@ class AdminOrderService {
 
     if (!order) {
       throw new Error("Order not found");
+    }
+
+    if (status === ORDER_STATUS.CANCELLED) {
+      await orderRepository.releaseInventory(orderId);
     }
 
     return order;

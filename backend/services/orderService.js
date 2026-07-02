@@ -20,6 +20,9 @@ class OrderService {
     const orderId = order.id;
 
     try {
+      // Check stock and reserve inventory first
+      await orderRepository.checkAndReserveStock(orderId, cartItems);
+
       let total = 0;
       const lineItems = [];
 
@@ -67,6 +70,9 @@ class OrderService {
         },
       });
 
+      console.log("PAYMENT_METHOD:", PAYMENT_METHOD);
+      console.log("METHOD VALUE:", PAYMENT_METHOD?.CREDIT_CARD);
+
       // Record payment intent in payments table 
       await orderRepository.createPayment(
         orderId,
@@ -87,6 +93,13 @@ class OrderService {
         status: ORDER_STATUS.PENDING_PAYMENT,
       };
     } catch (error) {
+      // Release inventory reservations if they were created
+      try {
+        await orderRepository.releaseInventory(orderId);
+      } catch (releaseErr) {
+        console.error(`Failed to release inventory reservations for order ${orderId}:`, releaseErr);
+      }
+
       // Transition order to CANCELLED on creation failure
       await orderRepository.transitionStatus(
         orderId,

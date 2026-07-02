@@ -24,6 +24,13 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Payment route (raw body for Stripe webhooks)
+app.post(
+  "/api/v1/payments/webhook",
+  express.raw({ type: "application/json" }),
+  paymentRoutes
+);
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static("uploads"));
@@ -34,20 +41,12 @@ app.use("/api", apiLimiter);
 // API Routes with versioning
 const apiRouter = express.Router();
 
-// Payment route (raw body for Stripe webhooks)
-apiRouter.post(
-  "/payments/webhook",
-  express.raw({ type: "application/json" }),
-  paymentRoutes,
-);
-
 apiRouter.use("/auth", authRoutes);
 apiRouter.use("/admin", adminProductRoutes);
 apiRouter.use("/admin", adminOrderRoutes);
 apiRouter.use("/manufacturer", manufacturerOrderRoutes);
 apiRouter.use("/order", orderRoutes);
 apiRouter.use("/customer", customerRoutes);
-apiRouter.use("/payments", paymentRoutes);
 
 app.use(`/api/${API_VERSION}`, apiRouter);
 
@@ -95,6 +94,6 @@ process.on("SIGINT", () => {
 
 // Handle uncaught exceptions
 process.on("uncaughtException", (error) => {
-  console.error("❌ Uncaught Exception:", error);
+  console.error(" Uncaught Exception:", error);
   process.exit(1);
 });

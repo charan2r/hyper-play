@@ -6,7 +6,7 @@ class OrderRepository {
   async create(customerId) {
     const result = await pool.query(
       `INSERT INTO orders (customer_id, total_amount, status, payment_status, payment_method)
-       VALUES ($1, 0, 'PENDING_PAYMENT', 'PENDING', 'CARD')
+       VALUES ($1, 0, 'PENDING_PAYMENT', 'PENDING', 'CREDIT_CARD')
        RETURNING id`,
       [customerId],
     );
@@ -119,7 +119,7 @@ class OrderRepository {
     try {
       // Lock the row and read current status
       const lockResult = await db.query(
-        `SELECT status FROM orders WHERE id = $1 FOR UPDATE`,
+        `SELECT status FROM orders WHERE id = $1 `,
         [orderId],
       );
 
@@ -137,6 +137,30 @@ class OrderRepository {
         `UPDATE orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
         [newStatus, orderId],
       );
+
+      // Keep manufacturing_assignments in sync
+      if (newStatus === 'IN_PRODUCTION') {
+        await db.query(
+          `UPDATE manufacturing_assignments 
+           SET manufacturing_status = 'IN_PRODUCTION', started_at = CURRENT_TIMESTAMP 
+           WHERE order_id = $1 AND manufacturing_status = 'ASSIGNED'`,
+          [orderId]
+        );
+      } else if (newStatus === 'PACKED') {
+        await db.query(
+          `UPDATE manufacturing_assignments 
+           SET manufacturing_status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP 
+           WHERE order_id = $1 AND manufacturing_status = 'IN_PRODUCTION'`,
+          [orderId]
+        );
+      } else if (newStatus === 'CANCELLED') {
+        await db.query(
+          `UPDATE manufacturing_assignments 
+           SET manufacturing_status = 'REJECTED', completed_at = CURRENT_TIMESTAMP 
+           WHERE order_id = $1 AND manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')`,
+          [orderId]
+        );
+      }
 
       // Record the history
       await db.query(
@@ -259,10 +283,93 @@ class OrderRepository {
   }
 
  
-  async assignManufacturer(_orderId, _manufacturerId) {
+  // Create a manufacturing assignment record (performs capacity check & logs assignment)
+  async createManufacturingAssignment(orderId, manufacturerId, client = null) {
+    const db = client || pool;
+
+    const manufacturerRes = await db.query(
+      `SELECT capacity, name, status FROM manufacturer WHERE id = $1`,
+      [manufacturerId]
+    );
+
+    if (manufacturerRes.rows.length === 0) {
+      throw new Error("Manufacturer not found");
+    }
+
+    const manufacturer = manufacturerRes.rows[0];
+    if (manufacturer.status !== 'active') {
+      throw new Error(`Manufacturer '${manufacturer.name}' is not active`);
+    }
+
+    const capacity = manufacturer.capacity || 10;
+
+    const countRes = await db.query(
+      `SELECT COUNT(*)::int AS count 
+       FROM manufacturing_assignments 
+       WHERE manufacturer_id = $1 AND manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')`,
+      [manufacturerId]
+    );
+
+    const activeCount = countRes.rows[0].count;
+    if (activeCount >= capacity) {
+      throw new Error(`Manufacturer '${manufacturer.name}' is at full capacity (${activeCount}/${capacity})`);
+    }
+
+    // Cancel/reject any existing active assignments for this order
+    await db.query(
+      `UPDATE manufacturing_assignments 
+       SET manufacturing_status = 'REJECTED', completed_at = CURRENT_TIMESTAMP
+       WHERE order_id = $1 AND manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')`,
+      [orderId]
+    );
+
+    // Insert new assignment
+    const result = await db.query(
+      `INSERT INTO manufacturing_assignments (order_id, manufacturer_id, manufacturing_status, assigned_at)
+       VALUES ($1, $2, 'ASSIGNED', CURRENT_TIMESTAMP)
+       RETURNING *`,
+      [orderId, manufacturerId]
+    );
+
+    return {
+      assignment: result.rows[0],
+      manufacturer: {
+        id: manufacturer.id,
+        name: manufacturer.name
+      }
+    };
+  }
+
+  // Atomically assign manufacturer and transition status to ASSIGNED in a single transaction
+  async assignManufacturerWithTransaction(orderId, manufacturerId, adminId) {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const assignmentInfo = await this.createManufacturingAssignment(orderId, manufacturerId, client);
+
+      const order = await this.transitionStatus(
+        orderId,
+        "ASSIGNED",
+        "admin",
+        adminId,
+        `Assigned to manufacturer: ${assignmentInfo.manufacturer.name}`,
+        client
+      );
+
+      await client.query("COMMIT");
+      return { ...order, manufacturer: assignmentInfo.manufacturer };
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async assignManufacturer(orderId, manufacturerId) {
     throw new Error(
-      "assignManufacturer is not implemented. " +
-        "Use the manufacturing_assignments table via adminOrderService.assignManufacturer().",
+      "assignManufacturer is deprecated. Use assignManufacturerWithTransaction instead."
     );
   }
 
@@ -313,6 +420,176 @@ class OrderRepository {
   }
 
  
+  // Check stock and reserve
+  async checkAndReserveStock(orderId, items, client = null) {
+    const db = client || pool;
+    const ownTransaction = !client;
+  
+    if (ownTransaction) {
+      await db.query("BEGIN");
+    }
+  
+    try {
+      const productIds = items.map(i => i.product_id);
+  
+      // 1. Lock products ONLY
+      const productRes = await db.query(
+        `SELECT id, name, stock
+         FROM product
+         WHERE id = ANY($1)
+         FOR UPDATE`,
+        [productIds]
+      );
+  
+      const products = {};
+      productRes.rows.forEach(p => {
+        products[p.id] = {
+          name: p.name,
+          stock: parseInt(p.stock)
+        };
+      });
+  
+      // 2. Get reserved quantities separately
+      const reservedRes = await db.query(
+        `SELECT product_id,
+                COALESCE(SUM(quantity), 0) AS reserved_qty
+         FROM inventory_reservations
+         WHERE product_id = ANY($1)
+           AND inventory_reservation_status = 'RESERVED'
+         GROUP BY product_id`,
+        [productIds]
+      );
+  
+      const reservedMap = {};
+      reservedRes.rows.forEach(r => {
+        reservedMap[r.product_id] = parseInt(r.reserved_qty);
+      });
+  
+      // 3. Validate + reserve
+      for (const item of items) {
+        const p = products[item.product_id];
+        if (!p) {
+          throw new Error(`Product ${item.product_id} not found`);
+        }
+  
+        const reserved = reservedMap[item.product_id] || 0;
+        const available = p.stock - reserved;
+  
+        if (available < item.quantity) {
+          throw new Error(
+            `Insufficient stock for ${p.name}. Available: ${available}, Requested: ${item.quantity}`
+          );
+        }
+  
+        await db.query(
+          `INSERT INTO inventory_reservations 
+           (product_id, order_id, quantity, inventory_reservation_status)
+           VALUES ($1, $2, $3, 'RESERVED')`,
+          [item.product_id, orderId, item.quantity]
+        );
+      }
+  
+      if (ownTransaction) {
+        await db.query("COMMIT");
+      }
+  
+    } catch (err) {
+      if (ownTransaction) {
+        await db.query("ROLLBACK");
+      }
+      throw err;
+    }
+  }
+
+  // Confirm reservations on payment success 
+  async confirmInventory(orderId, client = null) {
+    const db = client || pool;
+    const ownTransaction = !client;
+
+    if (ownTransaction) {
+      await db.query("BEGIN");
+    }
+
+    try {
+      const resResult = await db.query(
+        `SELECT id, product_id, quantity FROM inventory_reservations
+         WHERE order_id = $1 AND inventory_reservation_status = 'RESERVED'`,
+        [orderId]
+      );
+
+      for (const row of resResult.rows) {
+        await db.query(
+          `UPDATE inventory_reservations
+           SET inventory_reservation_status = 'CONVERTED'
+           WHERE id = $1`,
+          [row.id]
+        );
+
+        await db.query(
+          `UPDATE product
+           SET stock = stock - $1, sold = COALESCE(sold, 0) + $1
+           WHERE id = $2`,
+          [row.quantity, row.product_id]
+        );
+      }
+
+      if (ownTransaction) {
+        await db.query("COMMIT");
+      }
+    } catch (error) {
+      if (ownTransaction) {
+        await db.query("ROLLBACK");
+      }
+      throw error;
+    }
+  }
+
+  // Release reservations on cancel/fail
+  async releaseInventory(orderId, client = null) {
+    const db = client || pool;
+    const ownTransaction = !client;
+
+    if (ownTransaction) {
+      await db.query("BEGIN");
+    }
+
+    try {
+      const resResult = await db.query(
+        `SELECT id, product_id, quantity, inventory_reservation_status
+         FROM inventory_reservations
+         WHERE order_id = $1 AND inventory_reservation_status IN ('RESERVED', 'CONVERTED')`,
+        [orderId]
+      );
+
+      for (const row of resResult.rows) {
+        await db.query(
+          `UPDATE inventory_reservations
+           SET inventory_reservation_status = 'RELEASED'
+           WHERE id = $1`,
+          [row.id]
+        );
+
+        if (row.inventory_reservation_status === 'CONVERTED') {
+          await db.query(
+            `UPDATE product
+             SET stock = stock + $1, sold = GREATEST(COALESCE(sold, 0) - $1, 0)
+             WHERE id = $2`,
+            [row.quantity, row.product_id]
+          );
+        }
+      }
+
+      if (ownTransaction) {
+        await db.query("COMMIT");
+      }
+    } catch (error) {
+      if (ownTransaction) {
+        await db.query("ROLLBACK");
+      }
+      throw error;
+    }
+  }
+
   async updateProductStock(productId, quantitySold) {
     const result = await pool.query(
       `UPDATE product SET stock = stock - $1, sold = COALESCE(sold, 0) + $1
