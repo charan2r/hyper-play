@@ -9,11 +9,7 @@ export default function OrderSuccessPage() {
   const navigate = useNavigate();
   const [recentOrder, setRecentOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [creatingOrder, setCreatingOrder] = useState(true);
 
-  const sessionId = new URLSearchParams(window.location.search).get(
-    "session_id",
-  );
   const token = localStorage.getItem("customerToken");
 
   // 1. Fetch recent order
@@ -37,56 +33,21 @@ export default function OrderSuccessPage() {
     }
   });
 
-  // 2. Check payment + verify order status
-  const checkPaymentAndCreateOrder = useCallback(async () => {
-    if (!sessionId) {
-      setCreatingOrder(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/order/verify-payment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ sessionId }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Payment verified:", data);
-      } else {
-        console.error("Payment verification failed");
-      }
-    } catch (error) {
-      console.error("Error verifying payment:", error);
-    } finally {
-      setCreatingOrder(false);
-    }
-  });
-
-  // 3. On mount → check payment → fetch order
+  // 2. On mount → fetch order (webhook already processed payment)
   useEffect(() => {
-    if (token && sessionId) {
-      checkPaymentAndCreateOrder();
-      fetchRecentOrder();
-    } else if (token) {
-      fetchRecentOrder();
+    if (token) {
+      // Add small delay to allow webhook to process
+      const timer = setTimeout(() => {
+        fetchRecentOrder();
+      }, 1000);
+      return () => clearTimeout(timer);
     } else {
       setLoading(false);
       navigate("/login");
     }
 
     return;
-  }, [
-    navigate,
-    sessionId,
-    token,
-    checkPaymentAndCreateOrder,
-    fetchRecentOrder,
-  ]);
+  }, [navigate, token, fetchRecentOrder]);
 
   return (
     <>
@@ -103,14 +64,10 @@ export default function OrderSuccessPage() {
           </p>
 
           {/* Order Details */}
-          {creatingOrder || loading ? (
+          {loading ? (
             <div className="mb-6">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-500">
-                {creatingOrder
-                  ? "Finalizing your order..."
-                  : "Loading order details..."}
-              </p>
+              <p className="text-sm text-gray-500">Loading order details...</p>
             </div>
           ) : recentOrder ? (
             <div className="bg-gray-50 rounded-lg p-4 mb-6">

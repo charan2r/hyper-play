@@ -11,10 +11,10 @@ const ORDER_STATUS = {
   CANCELLED: "CANCELLED",
 };
 
-// Payment status 
+// Payment status
 const PAYMENT_STATUS = {
   PENDING: "PENDING",
-  SUCCESS: "SUCCESS",
+  PAID: "PAID",
   FAILED: "FAILED",
   REFUNDED: "REFUNDED",
 };
@@ -25,7 +25,7 @@ const PAYMENT_METHOD = {
   COD: "COD",
 };
 
-// Manufacturing assignment status 
+// Manufacturing assignment status
 const MANUFACTURING_STATUS = {
   ASSIGNED: "ASSIGNED",
   IN_PRODUCTION: "IN_PRODUCTION",
@@ -33,70 +33,68 @@ const MANUFACTURING_STATUS = {
   REJECTED: "REJECTED",
 };
 
-// Inventory reservation status 
+// Inventory reservation status
 const INVENTORY_RESERVATION_STATUS = {
-  RESERVED: "RESERVED",   // stock held, not yet decremented
-  RELEASED: "RELEASED",   // reservation cancelled; stock restored if it was CONVERTED
+  RESERVED: "RESERVED", // stock held, not yet decremented
+  RELEASED: "RELEASED", // reservation cancelled; stock restored if it was CONVERTED
   CONVERTED: "CONVERTED", // payment confirmed; stock permanently decremented
 };
-
 
 // Valid transitions map
 const VALID_TRANSITIONS = {
   // Order created, Stripe session not yet created
   [ORDER_STATUS.CART]: [
     ORDER_STATUS.PENDING_PAYMENT, // checkout initiated → Stripe session created
-    ORDER_STATUS.CANCELLED,       // customer abandons cart order
+    ORDER_STATUS.CANCELLED, // customer abandons cart order
   ],
 
   // Stripe session created, awaiting payment
   [ORDER_STATUS.PENDING_PAYMENT]: [
-    ORDER_STATUS.PAID,            // Stripe webhook: payment success
-    ORDER_STATUS.CANCELLED,       // Stripe webhook: payment failed / session expired
+    ORDER_STATUS.PAID, // Stripe webhook: payment success
+    ORDER_STATUS.CANCELLED, // Stripe webhook: payment failed / session expired
   ],
 
   // Payment confirmed
   [ORDER_STATUS.PAID]: [
-    ORDER_STATUS.ASSIGNED,        // admin assigns a manufacturer
-    ORDER_STATUS.CANCELLED,       // admin cancels
+    ORDER_STATUS.ASSIGNED, // admin assigns a manufacturer
+    ORDER_STATUS.CANCELLED, // admin cancels
   ],
 
   // Manufacturer assigned
   [ORDER_STATUS.ASSIGNED]: [
-    ORDER_STATUS.IN_PRODUCTION,   // manufacturer starts production
-    ORDER_STATUS.CANCELLED,       // admin cancels
+    ORDER_STATUS.IN_PRODUCTION, // manufacturer starts production
+    ORDER_STATUS.CANCELLED, // admin cancels
   ],
 
   // Manufacturer actively producing
   [ORDER_STATUS.IN_PRODUCTION]: [
-    ORDER_STATUS.PACKED,          // manufacturer packs the order
-    ORDER_STATUS.CANCELLED,       // admin cancels
+    ORDER_STATUS.PACKED, // manufacturer packs the order
+    ORDER_STATUS.CANCELLED, // admin cancels
   ],
 
   // Order packed and ready to ship
   [ORDER_STATUS.PACKED]: [
-    ORDER_STATUS.SHIPPED,         // admin ships the order
-    ORDER_STATUS.CANCELLED,       // admin cancels 
+    ORDER_STATUS.SHIPPED, // admin ships the order
+    ORDER_STATUS.CANCELLED, // admin cancels
   ],
 
   // Order handed to courier
   [ORDER_STATUS.SHIPPED]: [
-    ORDER_STATUS.DELIVERED,       // tracking system marks delivered
+    ORDER_STATUS.DELIVERED, // tracking system marks delivered
   ],
 
-  // Terminal states 
+  // Terminal states
   [ORDER_STATUS.DELIVERED]: [],
   [ORDER_STATUS.CANCELLED]: [],
 };
-
 
 // Role-based transition permissions
 
 const ROLE_ALLOWED_TRANSITIONS = {
   system: [
     ORDER_STATUS.PENDING_PAYMENT, // Stripe session created
-    ORDER_STATUS.PAID,            // Stripe payment success
-    ORDER_STATUS.CANCELLED,       // Stripe payment failure / expiry
+    ORDER_STATUS.PAID, // Stripe payment success
+    ORDER_STATUS.CANCELLED, // Stripe payment failure / expiry
   ],
 
   // Admin panel
@@ -108,18 +106,14 @@ const ROLE_ALLOWED_TRANSITIONS = {
   ],
 
   // Manufacturer portal
-  manufacturer: [
-    ORDER_STATUS.IN_PRODUCTION,  
-    ORDER_STATUS.PACKED,          
-  ],
+  manufacturer: [ORDER_STATUS.IN_PRODUCTION, ORDER_STATUS.PACKED],
 
-  // Customer 
+  // Customer
   customer: [
     ORDER_STATUS.PENDING_PAYMENT, // initiates checkout from CART
-    ORDER_STATUS.CANCELLED,       // cancels before payment only
+    ORDER_STATUS.CANCELLED, // cancels before payment only
   ],
 };
-
 
 // Guard functions
 
@@ -147,7 +141,7 @@ function assertTransition(from, to) {
       `Invalid status transition: ${from} → ${to}. ` +
         (allowed.length > 0
           ? `Allowed next states from '${from}': ${allowed.join(", ")}.`
-          : `'${from}' is a terminal state and cannot be changed.`)
+          : `'${from}' is a terminal state and cannot be changed.`),
     );
   }
 }
@@ -161,7 +155,7 @@ function assertRoleCanTransition(role, toStatus) {
   const allowed = ROLE_ALLOWED_TRANSITIONS[role] ?? [];
   if (!allowed.includes(toStatus)) {
     throw new Error(
-      `Role '${role}' is not permitted to set order status to '${toStatus}'.`
+      `Role '${role}' is not permitted to set order status to '${toStatus}'.`,
     );
   }
 }

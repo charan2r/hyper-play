@@ -18,38 +18,41 @@ class PaymentService {
       return { success: true, orderId, note: "Payment not yet paid" };
     }
 
-    // Update payment record in payments table with Stripe payment intent ID
-    if (session.payment_intent) {
-      await orderRepository.updatePaymentByOrderId(
+    try {
+      // Update payment record in payments table with Stripe payment intent ID
+      if (session.payment_intent) {
+        await orderRepository.updatePaymentByOrderId(
+          orderId,
+          PAYMENT_STATUS.PAID,
+          session.payment_intent,
+        );
+      }
+
+      // Transition order
+      await orderRepository.transitionStatus(
         orderId,
-        PAYMENT_STATUS.PAID,
-        session.payment_intent,
+        ORDER_STATUS.PAID,
+        "system",
+        null,
+        "Payment confirmed via Stripe webhook",
       );
+
+      // Update payment status
+      await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.PAID);
+
+      // Confirm inventory reservation
+      await orderRepository.confirmInventory(orderId);
+
+      // Clear customer's cart
+      const customerId = session.metadata.customer_id;
+      if (customerId) {
+        await orderRepository.clearCart(customerId);
+      }
+      return { success: true, orderId };
+    } catch (error) {
+      console.error(`Error processing payment for order ${orderId}:`, error);
+      throw error;
     }
-
-    // Transition order
-    await orderRepository.transitionStatus(
-      orderId,
-      ORDER_STATUS.PAID,
-      "system",
-      null,
-      "Payment confirmed via Stripe webhook",
-    );
-
-  
-    await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.PAID);
-
-    // Confirm inventory reservation
-    await orderRepository.confirmInventory(orderId);
-
-    // Clear customer's cart
-    const customerId = session.metadata.customer_id;
-    if (customerId) {
-      await orderRepository.clearCart(customerId);
-    }
-
-    
-    return { success: true, orderId };
   }
 
   async handlePaymentFailure(event) {
@@ -73,7 +76,73 @@ class PaymentService {
     return { success: true, orderId };
   }
 
-  // Call Webhook
+  async handleChargeSucceeded(charge) {
+    const paymentIntentId = charge.payment_intent;
+
+    if (!paymentIntentId) {
+      console.warn("No payment_intent in charge object");
+      return { success: false, error: "Missing payment_intent" };
+    }
+
+    try {
+      // Retrieve the payment intent to get metadata with order_id
+      const paymentIntent =
+        await stripe.paymentIntents.retrieve(paymentIntentId);
+      const orderId = paymentIntent.metadata?.order_id;
+      const customerId = paymentIntent.metadata?.customer_id;
+
+      if (!orderId) {
+        return { success: true, note: "No order_id found, skipping update" };
+      }
+
+      // Check if order was already processed
+      const order = await orderRepository.getOrderById(orderId);
+      if (
+        order.status === ORDER_STATUS.PAID ||
+        order.payment_status === PAYMENT_STATUS.PAID
+      ) {
+        return { success: true, orderId, note: "Payment already processed" };
+      }
+
+      // Update payment status
+      await orderRepository.updatePaymentByOrderId(
+        orderId,
+        PAYMENT_STATUS.PAID,
+        paymentIntentId,
+      );
+
+      // Update payment_status on orders table
+      await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.PAID);
+
+      // Transition order to PAID
+      if (order.status !== ORDER_STATUS.PAID) {
+        await orderRepository.transitionStatus(
+          orderId,
+          ORDER_STATUS.PAID,
+          "system",
+          null,
+          "Payment confirmed via Stripe charge.succeeded",
+        );
+      }
+
+      // Confirm inventory reservation
+      await orderRepository.confirmInventory(orderId);
+
+      // Clear customer's cart
+      if (customerId) {
+        await orderRepository.clearCart(customerId);
+      }
+      return { success: true, orderId };
+    } catch (error) {
+      console.error(
+        `Error processing charge for payment_intent ${paymentIntentId}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  // Process Stripe webhook events
   async processWebhook(sig, body) {
     let event;
 
@@ -87,9 +156,12 @@ class PaymentService {
       throw new Error(`Webhook Error: ${error.message}`);
     }
 
-
     if (event.type === "checkout.session.completed") {
       return await this.handleCheckoutComplete(event.data.object);
+    }
+
+    if (event.type === "charge.succeeded") {
+      return await this.handleChargeSucceeded(event.data.object);
     }
 
     if (event.type === "payment_intent.payment_failed") {
@@ -97,31 +169,6 @@ class PaymentService {
     }
 
     return { success: true, eventType: event.type };
-  }
-
-  // Verify payment via Stripe session ID
-  async verifySession(sessionId) {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-    if (!session) {
-      throw new Error("Invalid session ID");
-    }
-
-    const orderId = session.metadata.order_id;
-
-    if (!orderId) {
-      throw new Error("No order_id found in session");
-    }
-
-    // ONLY READ DB
-    const order = await orderRepository.getOrderById(orderId);
-
-    return {
-      success: true,
-      orderId,
-      paymentStatus: order.payment_status,
-      orderStatus: order.status,
-    };
   }
 }
 

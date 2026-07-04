@@ -206,7 +206,6 @@ DELETE /api/admin/products/:id    - Delete product
 
 ```
 POST   /api/order/create          - Create order (requires auth)
-POST   /api/order/verify-payment   - Verify payment (requires auth)
 GET    /api/order/orders          - Get customer's orders (requires auth)
 GET    /api/order/orders/:order_id - Get specific order (requires auth)
 ```

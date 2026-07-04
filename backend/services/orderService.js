@@ -1,6 +1,10 @@
 const orderRepository = require("../repositories/orderRepository");
 const productRepository = require("../repositories/productRepository");
-const { ORDER_STATUS, PAYMENT_STATUS, PAYMENT_METHOD } = require("./orderState");
+const {
+  ORDER_STATUS,
+  PAYMENT_STATUS,
+  PAYMENT_METHOD,
+} = require("./orderState");
 const Stripe = require("stripe");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -15,7 +19,7 @@ class OrderService {
       throw new Error("Customer information is required");
     }
 
-    // Create order 
+    // Create order
     const order = await orderRepository.create(customerId);
     const orderId = order.id;
 
@@ -68,12 +72,15 @@ class OrderService {
           order_id: orderId,
           customer_id: customerId,
         },
+        payment_intent_data: {
+          metadata: {
+            order_id: orderId,
+            customer_id: customerId,
+          },
+        },
       });
 
-      console.log("PAYMENT_METHOD:", PAYMENT_METHOD);
-      console.log("METHOD VALUE:", PAYMENT_METHOD?.CREDIT_CARD);
-
-      // Record payment intent in payments table 
+      // Record payment intent in payments table
       await orderRepository.createPayment(
         orderId,
         total,
@@ -97,7 +104,10 @@ class OrderService {
       try {
         await orderRepository.releaseInventory(orderId);
       } catch (releaseErr) {
-        console.error(`Failed to release inventory reservations for order ${orderId}:`, releaseErr);
+        console.error(
+          `Failed to release inventory reservations for order ${orderId}:`,
+          releaseErr,
+        );
       }
 
       // Transition order to CANCELLED on creation failure
@@ -124,21 +134,34 @@ class OrderService {
     return order;
   }
 
- 
-  async updateOrderStatus(orderId, status, role = "system", actorId = null, note = null) {
-    return await orderRepository.transitionStatus(orderId, status, role, actorId, note);
+  async updateOrderStatus(
+    orderId,
+    status,
+    role = "system",
+    actorId = null,
+    note = null,
+  ) {
+    return await orderRepository.transitionStatus(
+      orderId,
+      status,
+      role,
+      actorId,
+      note,
+    );
   }
 
   async updatePaymentStatus(orderId, paymentStatus) {
     const validStatuses = Object.values(PAYMENT_STATUS);
     if (!validStatuses.includes(paymentStatus)) {
-      throw new Error(`Invalid payment status: ${paymentStatus}. Must be one of: ${validStatuses.join(", ")}`);
+      throw new Error(
+        `Invalid payment status: ${paymentStatus}. Must be one of: ${validStatuses.join(", ")}`,
+      );
     }
     return await orderRepository.updatePaymentStatus(orderId, paymentStatus);
   }
 
   async processPaymentSuccess(orderId) {
-    await this.updatePaymentStatus(orderId, PAYMENT_STATUS.SUCCESS);
+    await this.updatePaymentStatus(orderId, PAYMENT_STATUS.PAID);
     return await orderRepository.transitionStatus(
       orderId,
       ORDER_STATUS.PAID,
