@@ -364,7 +364,7 @@ const HomePage = () => {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: 'url("/assets/homepage/football.JPG")',
+            backgroundImage: 'url("/assets/homepage/sports.jpg")',
           }}
         />
 

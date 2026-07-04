@@ -33,14 +33,6 @@ const Footer = () => {
                   href="#"
                   className="text-gray-400 hover:text-green-400 transition-colors"
                 >
-                  Reviews
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-green-400 transition-colors"
-                >
                   About Us
                 </a>
               </li>
@@ -50,14 +42,6 @@ const Footer = () => {
                   className="text-gray-400 hover:text-green-400 transition-colors"
                 >
                   Contact Us
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-green-400 transition-colors"
-                >
-                  FAQ
                 </a>
               </li>
             </ul>
