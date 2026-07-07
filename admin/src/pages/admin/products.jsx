@@ -28,6 +28,7 @@ const Products = () => {
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [productData, setProductData] = useState([]);
 
   const getStatusColor = (status) => {
@@ -77,11 +78,38 @@ const Products = () => {
     console.log(`Changing product ${productId} status to ${newStatus}`);
   };
 
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch(`${API_URL}/admin/products`);
+      const result = await response.json();
+      setProductData(result.data || []);
+    } catch (err) {
+      console.error("Error fetching products:", err);
+    }
+  };
+
+  const openAddModal = () => {
+    setEditingProduct(null);
+    setShowAddModal(true);
+  };
+
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setShowAddModal(true);
+  };
+
+  const closeProductModal = () => {
+    setShowAddModal(false);
+    setEditingProduct(null);
+  };
+
+  const handleProductSaved = async () => {
+    await fetchProducts();
+    closeProductModal();
+  };
+
   useEffect(() => {
-    fetch(`${API_URL}/admin/products`)
-      .then((res) => res.json())
-      .then((data) => setProductData(data.data))
-      .catch((err) => console.error("Error fetching products:", err));
+    fetchProducts();
   }, []);
 
   return (
@@ -194,19 +222,18 @@ const Products = () => {
 
                     <button
                       className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      onClick={() => {
-                        setShowAddModal(true);
-                      }}
+                      onClick={openAddModal}
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Product
                     </button>
                     {showAddModal && (
                       <AddProduct
-                        onClose={() => setShowAddModal(false)}
-                        onSave={(newProduct) => {
-                          setProductData((prev) => [newProduct, ...prev]);
-                        }}
+                        key={editingProduct?.id || "new-product"}
+                        product={editingProduct}
+                        isEditing={Boolean(editingProduct)}
+                        onClose={closeProductModal}
+                        onSave={handleProductSaved}
                       />
                     )}
                   </div>
@@ -265,7 +292,10 @@ const Products = () => {
                           </div>
                         </div>
                         <div className="flex space-x-1">
-                          <button className="p-1 text-gray-400 hover:text-gray-600">
+                          <button
+                            className="p-1 text-gray-400 hover:text-gray-600"
+                            onClick={() => openEditModal(product)}
+                          >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button className="p-1 text-gray-400 hover:text-red-600">
@@ -436,6 +466,7 @@ const Products = () => {
                               <button
                                 className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded"
                                 title="Edit Product"
+                                onClick={() => openEditModal(product)}
                               >
                                 <Edit className="h-4 w-4" />
                               </button>

@@ -10,7 +10,7 @@ const Categories = [
   { description: "Accessories" },
 ];
 
-const AddProduct = ({ onClose, onSave }) => {
+const AddProduct = ({ onClose, onSave, product = null, isEditing = false }) => {
   const [categories, setCategories] = useState([]);
   const [preview, setPreview] = useState(null);
 
@@ -27,29 +27,43 @@ const AddProduct = ({ onClose, onSave }) => {
     }, 300);
   }, []);
 
+  useEffect(() => {
+    if (product && isEditing) {
+      setPreview(product.image || null);
+    }
+  }, [product, isEditing]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
     const formData = new FormData(form);
     const token = localStorage.getItem("adminToken");
+    const endpoint =
+      isEditing && product?.id
+        ? `${API_URL}/admin/products/${product.id}`
+        : `${API_URL}/admin/products/add`;
+    const method = isEditing && product?.id ? "PUT" : "POST";
 
     try {
-      const response = await fetch(`${API_URL}/admin/products/add`, {
-        method: "POST",
+      const response = await fetch(endpoint, {
+        method,
         headers: {
           Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to add product");
+      if (!response.ok) throw new Error("Failed to save product");
 
-      const savedProduct = await response.json();
-      onSave(savedProduct);
-      onClose();
+      const result = await response.json();
+      onSave(result.data || result);
     } catch (error) {
-      console.error("Error adding product:", error);
-      alert("Failed to add product. Please try again.");
+      console.error("Error saving product:", error);
+      alert(
+        isEditing
+          ? "Failed to update product. Please try again."
+          : "Failed to add product. Please try again.",
+      );
     }
   };
 
@@ -58,7 +72,7 @@ const AddProduct = ({ onClose, onSave }) => {
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">
-            Add New Product
+            {isEditing ? "Edit Product" : "Add New Product"}
           </h2>
           <button
             onClick={onClose}
@@ -92,6 +106,7 @@ const AddProduct = ({ onClose, onSave }) => {
               <input
                 name="name"
                 required
+                defaultValue={product?.name || ""}
                 placeholder="Enter product name"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -106,6 +121,7 @@ const AddProduct = ({ onClose, onSave }) => {
                 step="0.01"
                 min="0"
                 required
+                defaultValue={product?.price || ""}
                 placeholder="0.00"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -120,6 +136,7 @@ const AddProduct = ({ onClose, onSave }) => {
               name="description"
               required
               rows="3"
+              defaultValue={product?.description || ""}
               placeholder="Enter product description"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
@@ -133,6 +150,7 @@ const AddProduct = ({ onClose, onSave }) => {
               <select
                 name="category"
                 required
+                defaultValue={product?.category || ""}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select Category</option>
@@ -149,6 +167,7 @@ const AddProduct = ({ onClose, onSave }) => {
               </label>
               <input
                 name="sport"
+                defaultValue={product?.sport || ""}
                 placeholder="e.g., Cricket, Football"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -162,7 +181,7 @@ const AddProduct = ({ onClose, onSave }) => {
               </label>
               <select
                 name="status"
-                defaultValue="active"
+                defaultValue={product?.status || "active"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="active">Active</option>
@@ -177,7 +196,7 @@ const AddProduct = ({ onClose, onSave }) => {
                 name="stock"
                 type="number"
                 min="0"
-                defaultValue={0}
+                defaultValue={product?.stock ?? 0}
                 placeholder="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -195,7 +214,7 @@ const AddProduct = ({ onClose, onSave }) => {
                 name="image"
                 type="file"
                 accept="image/*"
-                required
+                required={!isEditing}
                 className="hidden"
                 onChange={handleImageChange}
               />
@@ -225,7 +244,7 @@ const AddProduct = ({ onClose, onSave }) => {
               type="submit"
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             >
-              Add Product
+              {isEditing ? "Update Product" : "Add Product"}
             </button>
           </div>
         </form>
