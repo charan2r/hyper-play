@@ -628,13 +628,12 @@ const Orders = () => {
                                 order.status,
                               )}`}
                             >
-                              <option value="processing">Processing</option>
                               <option value="assigned">Assigned</option>
                               <option value="in_production">
                                 In Production
                               </option>
                               <option value="production_completed">
-                                Production Completed
+                                Packed
                               </option>
                               <option value="shipped">Shipped</option>
                               <option value="delivered">Delivered</option>

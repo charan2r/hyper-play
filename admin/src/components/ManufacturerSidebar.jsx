@@ -21,13 +21,7 @@ const Sidebar = ({
         } transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-300">
-          <div className="inline-flex items-center justify-center w-25 h-30 mb-5 ml-15 mt-5">
-            <img
-              className="max-w-full h-auto mt-5"
-              src="/logo.png"
-              alt="Logo"
-            />
-          </div>
+          <div className="inline-flex items-center justify-center w-25 h-30 mb-5 ml-15 mt-5"></div>
           <button
             onClick={onClose}
             className="lg:hidden hover:bg-gray-200 p-2 rounded-lg transition-colors"

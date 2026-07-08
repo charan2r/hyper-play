@@ -138,25 +138,40 @@ class OrderRepository {
 
       // Keep manufacturing_assignments in sync
       if (newStatus === "IN_PRODUCTION") {
-        await db.query(
+        const assignmentResult = await db.query(
           `UPDATE manufacturing_assignments 
            SET manufacturing_status = 'IN_PRODUCTION', started_at = CURRENT_TIMESTAMP 
-           WHERE order_id = $1 AND manufacturing_status = 'ASSIGNED'`,
+           WHERE order_id = $1 AND manufacturing_status = 'ASSIGNED'
+           RETURNING manufacturer_id`,
           [orderId],
+        );
+        await this.syncManufacturerCapacities(
+          assignmentResult.rows.map((row) => row.manufacturer_id),
+          db,
         );
       } else if (newStatus === "PACKED") {
-        await db.query(
+        const assignmentResult = await db.query(
           `UPDATE manufacturing_assignments 
            SET manufacturing_status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP 
-           WHERE order_id = $1 AND manufacturing_status = 'IN_PRODUCTION'`,
+           WHERE order_id = $1 AND manufacturing_status = 'IN_PRODUCTION'
+           RETURNING manufacturer_id`,
           [orderId],
         );
+        await this.syncManufacturerCapacities(
+          assignmentResult.rows.map((row) => row.manufacturer_id),
+          db,
+        );
       } else if (newStatus === "CANCELLED") {
-        await db.query(
+        const assignmentResult = await db.query(
           `UPDATE manufacturing_assignments 
            SET manufacturing_status = 'REJECTED', completed_at = CURRENT_TIMESTAMP 
-           WHERE order_id = $1 AND manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')`,
+           WHERE order_id = $1 AND manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')
+           RETURNING manufacturer_id`,
           [orderId],
+        );
+        await this.syncManufacturerCapacities(
+          assignmentResult.rows.map((row) => row.manufacturer_id),
+          db,
         );
       }
 
@@ -279,12 +294,12 @@ class OrderRepository {
     return result.rows;
   }
 
-  // Create a manufacturing assignment record (performs capacity check & logs assignment)
+  // Create a manufacturing assignment record
   async createManufacturingAssignment(orderId, manufacturerId, client = null) {
     const db = client || pool;
 
     const manufacturerRes = await db.query(
-      `SELECT capacity, name, status FROM manufacturer WHERE id = $1`,
+      `SELECT name, status FROM manufacturer WHERE id = $1`,
       [manufacturerId],
     );
 
@@ -297,29 +312,29 @@ class OrderRepository {
       throw new Error(`Manufacturer '${manufacturer.name}' is not active`);
     }
 
-    const capacity = manufacturer.capacity || 10;
-
-    const countRes = await db.query(
-      `SELECT COUNT(*)::int AS count 
-       FROM manufacturing_assignments 
-       WHERE manufacturer_id = $1 AND manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')`,
-      [manufacturerId],
-    );
-
-    const activeCount = countRes.rows[0].count;
-    if (activeCount >= capacity) {
-      throw new Error(
-        `Manufacturer '${manufacturer.name}' is at full capacity (${activeCount}/${capacity})`,
-      );
-    }
-
     // Cancel/reject any existing active assignments for this order
-    await db.query(
+    const rejectedAssignments = await db.query(
       `UPDATE manufacturing_assignments 
        SET manufacturing_status = 'REJECTED', completed_at = CURRENT_TIMESTAMP
-       WHERE order_id = $1 AND manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')`,
+       WHERE order_id = $1 AND manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')
+       RETURNING manufacturer_id`,
       [orderId],
     );
+    const rejectedManufacturerIds = rejectedAssignments.rows.map(
+      (row) => row.manufacturer_id,
+    );
+    await this.syncManufacturerCapacities(rejectedManufacturerIds, db);
+
+    const capacity = await this.getManufacturerCapacityForUpdate(
+      manufacturerId,
+      db,
+    );
+
+    if (capacity.active_orders >= capacity.max_orders) {
+      throw new Error(
+        `Manufacturer '${manufacturer.name}' is at full capacity (${capacity.active_orders}/${capacity.max_orders})`,
+      );
+    }
 
     // Insert new assignment
     const result = await db.query(
@@ -328,6 +343,7 @@ class OrderRepository {
        RETURNING *`,
       [orderId, manufacturerId],
     );
+    await this.syncManufacturerCapacities([manufacturerId], db);
 
     return {
       assignment: result.rows[0],
@@ -367,12 +383,6 @@ class OrderRepository {
     } finally {
       client.release();
     }
-  }
-
-  async assignManufacturer(orderId, manufacturerId) {
-    throw new Error(
-      "assignManufacturer is deprecated. Use assignManufacturerWithTransaction instead.",
-    );
   }
 
   async getAssignedOrdersForManufacturer(manufacturerId) {
@@ -419,6 +429,91 @@ class OrderRepository {
       [manufacturerId],
     );
     return result.rows;
+  }
+
+  async getManufacturerCapacityForUpdate(manufacturerId, db) {
+    let capacityRes = await db.query(
+      `SELECT manufacturer_id, max_orders, active_orders
+       FROM manufacturer_capacity
+       WHERE manufacturer_id = $1
+       FOR UPDATE`,
+      [manufacturerId],
+    );
+
+    if (capacityRes.rows.length === 0) {
+      capacityRes = await db.query(
+        `INSERT INTO manufacturer_capacity (manufacturer_id)
+         VALUES ($1)
+         ON CONFLICT (manufacturer_id) DO NOTHING
+         RETURNING manufacturer_id, max_orders, active_orders`,
+        [manufacturerId],
+      );
+
+      if (capacityRes.rows.length === 0) {
+        capacityRes = await db.query(
+          `SELECT manufacturer_id, max_orders, active_orders
+           FROM manufacturer_capacity
+           WHERE manufacturer_id = $1
+           FOR UPDATE`,
+          [manufacturerId],
+        );
+      }
+    }
+
+    await this.syncManufacturerCapacities([manufacturerId], db);
+
+    const refreshedRes = await db.query(
+      `SELECT manufacturer_id, max_orders, active_orders
+       FROM manufacturer_capacity
+       WHERE manufacturer_id = $1
+       FOR UPDATE`,
+      [manufacturerId],
+    );
+
+    return refreshedRes.rows[0];
+  }
+
+  async syncManufacturerCapacities(manufacturerIds, db) {
+    const ids = [...new Set(manufacturerIds.filter(Boolean))];
+    if (ids.length === 0) return;
+
+    await db.query(
+      `INSERT INTO manufacturer_capacity (manufacturer_id)
+       SELECT UNNEST($1::int[])
+       ON CONFLICT (manufacturer_id) DO NOTHING`,
+      [ids],
+    );
+
+    await db.query(
+      `UPDATE manufacturer_capacity mc
+       SET active_orders = counts.active_orders,
+           updated_at = CURRENT_TIMESTAMP
+       FROM (
+         SELECT
+           manufacturer_id,
+           COUNT(*)::int AS active_orders
+         FROM manufacturing_assignments
+         WHERE manufacturer_id = ANY($1)
+           AND manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')
+         GROUP BY manufacturer_id
+       ) counts
+       WHERE mc.manufacturer_id = counts.manufacturer_id`,
+      [ids],
+    );
+
+    await db.query(
+      `UPDATE manufacturer_capacity
+       SET active_orders = 0,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE manufacturer_id = ANY($1)
+         AND NOT EXISTS (
+           SELECT 1
+           FROM manufacturing_assignments ma
+           WHERE ma.manufacturer_id = manufacturer_capacity.manufacturer_id
+             AND ma.manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')
+         )`,
+      [ids],
+    );
   }
 
   // Check stock and reserve
@@ -598,6 +693,28 @@ class OrderRepository {
       [quantitySold, productId],
     );
     return result.rows[0];
+  }
+
+  // Find an active manufacturer that still has capacity
+  async findAvailableManufacturer() {
+    const result = await pool.query(
+      `SELECT
+         m.id,
+         m.name,
+         COUNT(ma.id)::int AS active_count,
+         COALESCE(mc.max_orders, 5) AS max_orders
+       FROM manufacturer m
+       LEFT JOIN manufacturer_capacity mc ON mc.manufacturer_id = m.id
+       LEFT JOIN manufacturing_assignments ma
+         ON ma.manufacturer_id = m.id
+         AND ma.manufacturing_status IN ('ASSIGNED', 'IN_PRODUCTION')
+       WHERE m.status = 'active'
+       GROUP BY m.id, mc.max_orders
+       HAVING COUNT(ma.id) < COALESCE(mc.max_orders, 5)
+       ORDER BY active_count ASC, m.id ASC
+       LIMIT 1`,
+    );
+    return result.rows[0] || null;
   }
 
   // Clear cart

@@ -38,7 +38,39 @@ class AdminOrderService {
 
  
   async assignManufacturer(orderId, manufacturerId, adminId) {
-    return await orderRepository.assignManufacturerWithTransaction(orderId, manufacturerId, adminId);
+    return await orderRepository.assignManufacturerWithTransaction(
+      orderId,
+      manufacturerId,
+      adminId,
+    );
+  }
+
+  // Auto-pick the manufacturer with free capacity and assign them.
+  async autoAssignManufacturer(orderId) {
+    const manufacturer = await orderRepository.findAvailableManufacturer();
+
+    if (!manufacturer) {
+      console.warn(
+        `No available manufacturer for order ${orderId}. ` +
+          `Order will remain in PAID status until manually assigned.`,
+      );
+      return null;
+    }
+
+   
+    const result = await orderRepository.assignManufacturerWithTransaction(
+      orderId,
+      manufacturer.id,
+      null, 
+    );
+
+    console.info(
+      `Order ${orderId} auto-assigned to manufacturer ` +
+        `'${manufacturer.name}' (id=${manufacturer.id}, ` +
+        `active=${manufacturer.active_count + 1}).`,
+    );
+
+    return result;
   }
 
   async getManufacturers() {

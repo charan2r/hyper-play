@@ -108,10 +108,9 @@ const ROLE_ALLOWED_TRANSITIONS = {
   // Manufacturer portal
   manufacturer: [ORDER_STATUS.IN_PRODUCTION, ORDER_STATUS.PACKED],
 
-  // Customer
+  // Customer can only initiate checkout. cannot cancel
   customer: [
     ORDER_STATUS.PENDING_PAYMENT, // initiates checkout from CART
-    ORDER_STATUS.CANCELLED, // cancels before payment only
   ],
 };
 

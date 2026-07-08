@@ -26,7 +26,7 @@ const Orders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/manufacturer/orders`, {
+        const response = await fetch(`${API_URL}/manufacturer/orders`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -519,7 +519,10 @@ const Orders = () => {
                                 In Production
                               </option>
                               <option value="production_completed">
-                                Production Completed
+                                Completed
+                              </option>
+                              <option value="production_completed">
+                                Rejected
                               </option>
                             </select>
                           </td>

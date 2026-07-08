@@ -1,4 +1,5 @@
 const orderRepository = require("../repositories/orderRepository");
+const adminOrderService = require("./adminOrderService");
 const { ORDER_STATUS, PAYMENT_STATUS } = require("./orderState");
 const Stripe = require("stripe");
 
@@ -43,6 +44,16 @@ class PaymentService {
       // Confirm inventory reservation
       await orderRepository.confirmInventory(orderId);
 
+      // Auto-assign manufacturer 
+      try {
+        await adminOrderService.autoAssignManufacturer(orderId);
+      } catch (assignErr) {
+        console.error(
+          `Failed to auto-assign order ${orderId}:`,
+          assignErr.message,
+        );
+      }
+
       // Clear customer's cart
       const customerId = session.metadata.customer_id;
       if (customerId) {
@@ -76,71 +87,6 @@ class PaymentService {
     return { success: true, orderId };
   }
 
-  async handleChargeSucceeded(charge) {
-    const paymentIntentId = charge.payment_intent;
-
-    if (!paymentIntentId) {
-      console.warn("No payment_intent in charge object");
-      return { success: false, error: "Missing payment_intent" };
-    }
-
-    try {
-      // Retrieve the payment intent to get metadata with order_id
-      const paymentIntent =
-        await stripe.paymentIntents.retrieve(paymentIntentId);
-      const orderId = paymentIntent.metadata?.order_id;
-      const customerId = paymentIntent.metadata?.customer_id;
-
-      if (!orderId) {
-        return { success: true, note: "No order_id found, skipping update" };
-      }
-
-      // Check if order was already processed
-      const order = await orderRepository.getOrderById(orderId);
-      if (
-        order.status === ORDER_STATUS.PAID ||
-        order.payment_status === PAYMENT_STATUS.PAID
-      ) {
-        return { success: true, orderId, note: "Payment already processed" };
-      }
-
-      // Update payment status
-      await orderRepository.updatePaymentByOrderId(
-        orderId,
-        PAYMENT_STATUS.PAID,
-        paymentIntentId,
-      );
-
-      // Update payment_status on orders table
-      await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.PAID);
-
-      // Transition order to PAID
-      if (order.status !== ORDER_STATUS.PAID) {
-        await orderRepository.transitionStatus(
-          orderId,
-          ORDER_STATUS.PAID,
-          "system",
-          null,
-          "Payment confirmed via Stripe charge.succeeded",
-        );
-      }
-
-      // Confirm inventory reservation
-      await orderRepository.confirmInventory(orderId);
-
-      // Clear customer's cart
-      if (customerId) {
-        await orderRepository.clearCart(customerId);
-      }
-      return { success: true, orderId };
-    } catch (error) {
-      console.error(
-        `Error processing charge for payment_intent ${paymentIntentId}:`,
-        error,
-      );
-      throw error;
-    }
-  }
 
   // Process Stripe webhook events
   async processWebhook(sig, body) {
@@ -158,10 +104,6 @@ class PaymentService {
 
     if (event.type === "checkout.session.completed") {
       return await this.handleCheckoutComplete(event.data.object);
-    }
-
-    if (event.type === "charge.succeeded") {
-      return await this.handleChargeSucceeded(event.data.object);
     }
 
     if (event.type === "payment_intent.payment_failed") {
