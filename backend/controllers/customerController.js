@@ -1,5 +1,5 @@
 const productService = require("../services/productService");
-const pool = require("../db");
+const pool = require("../config/db");
 
 // Customer fetch active products
 exports.getProducts = async (req, res) => {

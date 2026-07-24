@@ -3,10 +3,8 @@ import HomePage from "./components/User/HomePage.jsx";
 import ProductsPage from "./components/User/ProductsPage.jsx";
 import ProductDetailsPage from "./components/User/ProductDetailsPage.jsx";
 import SportsPage from "./components/User/SportsPage.jsx";
-import AboutPage from "./components/User/AboutPage.jsx";
 import CartPage from "./components/User/CartPage";
 import CheckoutPage from "./components/User/CheckoutPage.jsx";
-import ContactPage from "./components/User/ContactPage.tsx";
 import OrderSuccessPage from "./components/User/OrderSuccessPage.jsx";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
@@ -29,8 +27,6 @@ export default function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-success" element={<OrderSuccessPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
       </Routes>
     </Router>
   );
