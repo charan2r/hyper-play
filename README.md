@@ -1,241 +1,155 @@
-# Hyper Play - Sports E-commerce Platform
+# Hyper Play
 
-A full-stack web application that enables users to buy sports equipment, manage orders through a multi-role system, and process payments securely.
+Hyper Play is a full-stack sports-commerce platform for customers, administrators, and manufacturers. Customers can browse products, manage a cart, and pay through Stripe Checkout; administrators manage the catalog and fulfilment; manufacturers work assigned orders through a controlled production lifecycle.
 
-## Project Overview
+## What is included
 
-Hyper Play is a comprehensive e-commerce platform designed for sports equipment browsing and buying. It supports three user roles:
+- Customer storefront with registration, authentication, catalog browsing, cart, checkout, and order history
+- Admin portal for products, customers, orders, inventory views, analytics views, and manufacturer assignment
+- Manufacturer portal for assigned work, production status updates.
+- JWT-based role authorization
+- Stripe Checkout and signed webhook processing
+- PostgreSQL persistence with inventory reservations and order status history
+- Amazon S3 product-image uploads
+- Docker images and Compose orchestration for all three applications and PostgreSQL
 
-- **Customers**: Browse and purchase sports equipment.
-- **Manufacturers**: Receive orders and prepare for production
-- **Admins**: Manage products, monitor orders, and assign work to manufacturers
+## Technology
 
-## Tech Stack
+| Layer                 | Technologies                                         |
+| --------------------- | ---------------------------------------------------- |
+| Customer app          | React 19, React Router, Vite, Tailwind CSS           |
+| Operations app        | React 19, React Router, Vite, Tailwind CSS, Radix UI |
+| API                   | Node.js 20, Express 5, Joi, JWT, bcrypt              |
+| Data and integrations | PostgreSQL 15, Stripe, Amazon S3                     |
+| Delivery              | Docker, Docker Compose, Nginx, Vercel SPA rewrites   |
 
-### Backend
+## Architecture
 
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web framework
-- **PostgreSQL** - Database
-- **JWT (jsonwebtoken)** - Authentication
-- **Bcrypt** - Password hashing
-- **AWS S3** - Image storage
-- **Stripe** - Payment processing
-- **Multer** - File upload handling
+```mermaid
+flowchart LR
+    C[Customer browser] --> SF[Customer React SPA]
+    A[Admin browser] --> OP[Operations React SPA]
+    M[Manufacturer browser] --> OP
 
-### Frontend
+    SF -->|REST + Bearer JWT| API[Express API /api/v1]
+    OP -->|REST + Bearer JWT| API
 
-- **React** - UI library
-- **Tailwind CSS** - Styling
+    API --> AUTH[Auth and role middleware]
+    AUTH --> CTRL[Controllers]
+    CTRL --> SVC[Services and order state machine]
+    SVC --> REPO[Repositories]
+    REPO --> PG[(PostgreSQL)]
 
-### DevOps
+    SVC --> STRIPE[Stripe Checkout]
+    STRIPE -->|Signed webhook| API
+    CTRL --> S3[Amazon S3]
+```
 
-- **Docker** - Containerization
-- **Docker Compose** - Multi-container orchestration
-- **Nginx** - Reverse proxy & static file serving
+## Repository layout
 
-## Features
+```text
+hyper-play/
+├── frontend/             Customer React application
+├── admin/                Admin and manufacturer React application
+├── backend/
+│   ├── config/           PostgreSQL connection
+│   ├── controllers/      HTTP request and response handling
+│   ├── middleware/       Auth, validation, rate limiting, errors
+│   ├── repositories/     PostgreSQL queries
+│   ├── routes/           Express route definitions
+│   ├── services/         Business logic and integrations
+│   ├── utils/            S3 uploads and PDF generation
+│   └── validations/      Joi request schemas
+├── docs/                 Architecture, setup, and API reference
+└── docker-compose.yml    Local multi-container stack
+```
 
-### Customer Features
-
-- ✅ User registration and authentication
-- ✅ Browse available sports equipment
-- ✅ Shopping cart management
-- ✅ Secure checkout with Stripe payment integration
-- ✅ Product filtering and search
-
-### Manufacturer Features
-
-- ✅ View assigned orders
-- ✅ Order management dashboard
-
-### Admin Features
-
-- ✅ Product management (add, edit, delete)
-- ✅ Image upload to AWS S3
-- ✅ View all customer orders
-- ✅ Assign orders to manufacturers
-- ✅ Manufacturer management
-- ✅ Customer management
-
-## Setup Instructions
+## Quick start
 
 ### Prerequisites
 
-- Node.js 18+ or Docker installed
-- PostgreSQL 15
-- Git
-- AWS S3 account (for image storage)
-- Stripe account (for payments)
+- Node.js 20 or newer and npm
+- PostgreSQL 15 or a compatible hosted PostgreSQL database
+- Stripe account and Stripe CLI for local webhook testing
+- AWS account and S3 bucket for product-image uploads
 
-### Option 1: Docker Setup (Recommended)
+### 1. Configure the applications
 
-1. **Clone the repository**
+Copy the committed examples to local environment files:
 
 ```bash
-git clone <repository-url>
-cd project-hyper-play
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+cp admin/.env.example admin/.env
 ```
 
-2. **Create environment files**
-
-Create `backend/.env`:
+Update the placeholders in `backend/.env`. For local npm development, both SPA files should use:
 
 ```env
-PORT=
-DB_HOST=
-DB_USER=
-DB_PASSWORD=
-DB_NAME=
-DB_PORT=
-JWT_SECRET=your_jwt_secret_key_here
-AWS_REGION=your_aws_region
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_S3_BUCKET=your_s3_bucket_name
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+VITE_API_URL=http://localhost:5000/api/v1
 ```
 
-3. **Start all services**
+### 2. Install and run locally
 
-```bash
-docker-compose up --build
-```
-
-Services will be available at:
-
-- Frontend: http://localhost:3000
-- Admin: http://localhost:3001
-- Backend API: http://localhost:5000
-- Database: localhost:5434
-
-4. **Seed the database** (optional)
-
-```bash
-docker-compose exec backend node seed.js
-```
-
-### Option 2: Local Development Setup
-
-#### Backend Setup
+In three terminals:
 
 ```bash
 cd backend
-npm install
-```
-
-Create `backend/.env`:
-
-```env
-PORT=
-DB_HOST=
-DB_USER=
-DB_PASSWORD=
-DB_NAME=
-DB_PORT=
-JWT_SECRET=your_jwt_secret_key_here
-AWS_REGION=your_aws_region
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_S3_BUCKET=your_s3_bucket_name
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-```
-
-Start the backend:
-
-```bash
+npm i
 npm start
-# Server runs on http://localhost:5000
 ```
-
-#### Frontend Setup
 
 ```bash
 cd frontend
-npm install
+npm i
 npm run dev
-# Runs on http://localhost:5173
 ```
-
-#### Admin Setup
 
 ```bash
 cd admin
-npm install
+npm i
 npm run dev
-# Runs on http://localhost:5174
 ```
 
-#### Database Setup
+The default local URLs are:
+
+| Service                | URL                            |
+| ---------------------- | ------------------------------ |
+| Customer app           | `http://localhost:5173`        |
+| Admin/manufacturer app | `http://localhost:5174`        |
+| API                    | `http://localhost:5000/api/v1` |
+| Health check           | `http://localhost:5000/health` |
+
+Protected routes use:
+
+```http
+Authorization: Bearer <jwt>
+```
+
+Major endpoint groups:
+
+| Group          | Base path              | Purpose                                       |
+| -------------- | ---------------------- | --------------------------------------------- |
+| Authentication | `/api/v1/auth`         | Customer registration and role-specific login |
+| Customer       | `/api/v1/customer`     | Active products, cart, and customer listing   |
+| Orders         | `/api/v1/order`        | Checkout and customer order retrieval         |
+| Admin          | `/api/v1/admin`        | Products, orders, status, and assignment      |
+| Manufacturer   | `/api/v1/manufacturer` | Assigned orders, production status, PDFs      |
+| Payments       | `/api/v1/payments`     | Stripe webhook receiver                       |
+
+See the [API reference](docs/API.md) for every route, authorization rules, request bodies, validation, responses, and status transitions.
+
+## Validation
 
 ```bash
-# Install PostgreSQL if not already installed
-# Create database
-createdb sports
-
-# Run migrations/seed (if available)
-cd backend
-node seed.js
+cd frontend && npm run lint && npm run build
+cd admin && npm run lint && npm run build
 ```
 
-## API Endpoints
+The backend package currently has no automated test suite; its `npm test` script is a placeholder.
 
-### Authentication Routes
+## Documentation
 
-```
-POST   /api/register              - Customer registration
-POST   /api/login                 - Customer login
-GET    /api/admin/profile         - Get admin profile (requires auth)
-POST   /api/admin/login           - Admin login
-POST   /api/manufacturer/login     - Manufacturer login
-```
-
-### Product Routes (Admin)
-
-```
-GET    /api/admin/products        - Get all products
-GET    /api/admin/products/:id    - Get product by ID
-POST   /api/admin/products/add    - Add new product (with image upload)
-PUT    /api/admin/products/:id    - Update product (with image upload)
-DELETE /api/admin/products/:id    - Delete product
-```
-
-### Order Routes (Customer)
-
-```
-POST   /api/order/create          - Create order (requires auth)
-GET    /api/order/orders          - Get customer's orders (requires auth)
-GET    /api/order/orders/:order_id - Get specific order (requires auth)
-```
-
-### Admin Order Routes
-
-```
-GET    /api/admin/orders          - Get all orders (requires auth)
-PUT    /api/admin/orders/:orderId/assign-manufacturer - Assign order to manufacturer (requires auth)
-PUT    /api/admin/orders/:orderId/status - Update order status (requires auth)
-GET    /api/admin/get-manufacturers - Get list of manufacturers
-```
-
-### Manufacturer Order Routes
-
-```
-GET    /api/manufacturer/orders   - Get assigned orders
-```
-
-### Customer Routes
-
-```
-GET    /api/customer/all          - Get all customers (admin only)
-GET    /api/customer/products     - Get all products
-GET    /api/customer/cart         - Get shopping cart (requires auth)
-POST   /api/customer/cart         - Add to cart (requires auth)
-```
-
-### Payment Routes
-
-```
-POST   /api/payments/webhook      - Stripe webhook for payment confirmation
-```
+- [Setup and operations](docs/SETUP.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [API reference](docs/API.md)
