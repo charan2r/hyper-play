@@ -1,4 +1,4 @@
-const pool = require("../db");
+const pool = require("../config/db");
 
 class UserRepository {
   async findByEmail(email, userType = "customer") {

@@ -1,4 +1,4 @@
-const pool = require("../db");
+const pool = require("../config/db");
 const { assertTransition, PAYMENT_STATUS } = require("../services/orderState");
 
 class OrderRepository {
