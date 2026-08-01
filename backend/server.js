@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const pool = require("./config/db");
 const notificationOutboxDispatcher = require("./queue/notificationOutboxDispatcher");
+const notificationWorker = require("./queue/notificationWorker");
 const { apiLimiter } = require("./middleware/rateLimiter");
 const { errorHandler } = require("./middleware/errorHandler");
 const adminProductRoutes = require("./routes/adminProductRoutes");
@@ -75,6 +76,7 @@ const NODE_ENV = process.env.NODE_ENV;
 
 const server = app.listen(PORT, () => {
   console.log(`Server is running in ${NODE_ENV} mode on port ${PORT}`);
+  notificationWorker.start();
   notificationOutboxDispatcher.start();
 });
 
@@ -88,8 +90,11 @@ async function shutdown(signal) {
 
   await new Promise((resolve) => server.close(resolve));
   await notificationOutboxDispatcher.stop();
+  await notificationWorker.stop();
   await pool.end();
-  console.log("HTTP server, outbox dispatcher, and database pool closed");
+  console.log(
+    "HTTP server, notification worker, outbox dispatcher, and database pool closed",
+  );
   process.exit(0);
 }
 

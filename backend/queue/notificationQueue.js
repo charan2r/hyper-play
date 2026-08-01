@@ -1,7 +1,7 @@
 const { Queue } = require("bullmq");
 const {
   NOTIFICATION_QUEUE_NAME,
-} = require("@hyper-play/notification-contract");
+} = require("../notifications/notificationContract");
 const { getRedisConnection } = require("./redisConnection");
 
 const notificationQueue = new Queue(NOTIFICATION_QUEUE_NAME, {

@@ -1,4 +1,4 @@
-function getRedisConnection() {
+function getRedisConnection(maxRetriesPerRequest = 1) {
   if (!process.env.REDIS_URL) {
     throw new Error("REDIS_URL environment variable is required");
   }
@@ -14,7 +14,7 @@ function getRedisConnection() {
     username: url.username ? decodeURIComponent(url.username) : undefined,
     password: url.password ? decodeURIComponent(url.password) : undefined,
     tls: url.protocol === "rediss:" ? {} : undefined,
-    maxRetriesPerRequest: 1,
+    maxRetriesPerRequest,
   };
 }
 

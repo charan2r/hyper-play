@@ -4,7 +4,7 @@ const { ORDER_STATUS, PAYMENT_STATUS } = require("./orderState");
 const {
   NOTIFICATION_EVENT_TYPES,
   NOTIFICATION_SCHEMA_VERSION,
-} = require("@hyper-play/notification-contract");
+} = require("../notifications/notificationContract");
 const { randomUUID } = require("node:crypto");
 const Stripe = require("stripe");
 
