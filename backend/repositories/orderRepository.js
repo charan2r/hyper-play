@@ -739,6 +739,22 @@ class OrderRepository {
     ]);
   }
 
+  async getNotificationOrderSnapshot(orderId, client) {
+    const result = await client.query(
+      `SELECT
+         o.id,
+         o.total_amount,
+         o.status,
+         c.name AS customer_name,
+         c.email AS customer_email
+       FROM orders o
+       JOIN customer c ON c.id = o.customer_id
+       WHERE o.id = $1`,
+      [orderId],
+    );
+    return result.rows[0] || null;
+  }
+
   async claimStripeWebhookEvent(eventId, eventType, client) {
     const result = await client.query(
       `INSERT INTO stripe_webhook_events (event_id, event_type)

@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const pool = require("./config/db");
+const notificationOutboxDispatcher = require("./queue/notificationOutboxDispatcher");
 const { apiLimiter } = require("./middleware/rateLimiter");
 const { errorHandler } = require("./middleware/errorHandler");
 const adminProductRoutes = require("./routes/adminProductRoutes");
@@ -73,24 +75,26 @@ const NODE_ENV = process.env.NODE_ENV;
 
 const server = app.listen(PORT, () => {
   console.log(`Server is running in ${NODE_ENV} mode on port ${PORT}`);
+  notificationOutboxDispatcher.start();
 });
 
 // Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM signal received: closing HTTP server");
-  server.close(() => {
-    console.log("HTTP server closed");
-    process.exit(0);
-  });
-});
+let shuttingDown = false;
 
-process.on("SIGINT", () => {
-  console.log("SIGINT signal received: closing HTTP server");
-  server.close(() => {
-    console.log("HTTP server closed");
-    process.exit(0);
-  });
-});
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal} signal received: shutting down`);
+
+  await new Promise((resolve) => server.close(resolve));
+  await notificationOutboxDispatcher.stop();
+  await pool.end();
+  console.log("HTTP server, outbox dispatcher, and database pool closed");
+  process.exit(0);
+}
+
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
+process.once("SIGINT", () => void shutdown("SIGINT"));
 
 // Handle uncaught exceptions
 process.on("uncaughtException", (error) => {

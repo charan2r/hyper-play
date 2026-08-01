@@ -20,9 +20,13 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@hyper-play/notification-contract": "file:../packages/notification-contract",
+    "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^10.0.0",
+    "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "bullmq": "^5.81.3",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
   },

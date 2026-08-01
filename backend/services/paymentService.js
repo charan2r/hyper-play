@@ -1,5 +1,11 @@
 const orderRepository = require("../repositories/orderRepository");
+const notificationOutboxRepository = require("../repositories/notificationOutboxRepository");
 const { ORDER_STATUS, PAYMENT_STATUS } = require("./orderState");
+const {
+  NOTIFICATION_EVENT_TYPES,
+  NOTIFICATION_SCHEMA_VERSION,
+} = require("@hyper-play/notification-contract");
+const { randomUUID } = require("node:crypto");
 const Stripe = require("stripe");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -78,10 +84,37 @@ class PaymentService {
           await orderRepository.clearCart(customerId, client);
         }
 
+        const snapshot = await orderRepository.getNotificationOrderSnapshot(
+          orderId,
+          client,
+        );
+        if (!snapshot) {
+          throw new Error(`Notification snapshot for order ${orderId} not found`);
+        }
+
+        const notificationEvent = {
+          schemaVersion: NOTIFICATION_SCHEMA_VERSION,
+          eventId: randomUUID(),
+          eventType: NOTIFICATION_EVENT_TYPES.PAYMENT_SUCCEEDED,
+          occurredAt: new Date().toISOString(),
+          recipient: {
+            email: snapshot.customer_email,
+            name: snapshot.customer_name,
+          },
+          order: {
+            id: snapshot.id,
+            total: Number(snapshot.total_amount),
+            currency: "LKR",
+            status: snapshot.status,
+          },
+        };
+        await notificationOutboxRepository.create(notificationEvent, client);
+
         return {
           success: true,
           orderId,
           manufacturerId: manufacturer?.id || null,
+          notificationEventId: notificationEvent.eventId,
         };
       });
     } catch (error) {
