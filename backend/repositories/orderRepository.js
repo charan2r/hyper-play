@@ -2,6 +2,21 @@ const pool = require("../config/db");
 const { assertTransition, PAYMENT_STATUS } = require("../services/orderState");
 
 class OrderRepository {
+  async withTransaction(work) {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await work(client);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   // Order creation
   async create(customerId) {
     const result = await pool.query(
@@ -57,8 +72,9 @@ class OrderRepository {
   }
 
   // Update payment status
-  async updatePaymentStatus(orderId, paymentStatus) {
-    const result = await pool.query(
+  async updatePaymentStatus(orderId, paymentStatus, client = null) {
+    const db = client || pool;
+    const result = await db.query(
       `UPDATE orders SET payment_status = $1 WHERE id = $2 RETURNING *`,
       [paymentStatus, orderId],
     );
@@ -78,8 +94,14 @@ class OrderRepository {
   }
 
   // Update payment by order ID
-  async updatePaymentByOrderId(orderId, status, stripePaymentIntentId) {
-    const result = await pool.query(
+  async updatePaymentByOrderId(
+    orderId,
+    status,
+    stripePaymentIntentId,
+    client = null,
+  ) {
+    const db = client || pool;
+    const result = await db.query(
       `UPDATE payments
        SET status = $1, stripe_payment_intent_id = $2, updated_at = CURRENT_TIMESTAMP
        WHERE order_id = $3
@@ -117,7 +139,7 @@ class OrderRepository {
     try {
       // Lock the row and read current status
       const lockResult = await db.query(
-        `SELECT status FROM orders WHERE id = $1 `,
+        `SELECT status FROM orders WHERE id = $1 FOR UPDATE`,
         [orderId],
       );
 
@@ -299,7 +321,7 @@ class OrderRepository {
     const db = client || pool;
 
     const manufacturerRes = await db.query(
-      `SELECT name, status FROM manufacturer WHERE id = $1`,
+      `SELECT id, name, status FROM manufacturer WHERE id = $1`,
       [manufacturerId],
     );
 
@@ -356,10 +378,7 @@ class OrderRepository {
 
   // Atomically assign manufacturer and transition status to ASSIGNED in a single transaction
   async assignManufacturerWithTransaction(orderId, manufacturerId, adminId) {
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-
+    return this.withTransaction(async (client) => {
       const assignmentInfo = await this.createManufacturingAssignment(
         orderId,
         manufacturerId,
@@ -375,14 +394,8 @@ class OrderRepository {
         client,
       );
 
-      await client.query("COMMIT");
       return { ...order, manufacturer: assignmentInfo.manufacturer };
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
-    } finally {
-      client.release();
-    }
+    });
   }
 
   async getAssignedOrdersForManufacturer(manufacturerId) {
@@ -696,8 +709,9 @@ class OrderRepository {
   }
 
   // Find an active manufacturer that still has capacity
-  async findAvailableManufacturer() {
-    const result = await pool.query(
+  async findAvailableManufacturer(client = null) {
+    const db = client || pool;
+    const result = await db.query(
       `SELECT
          m.id,
          m.name,
@@ -718,10 +732,22 @@ class OrderRepository {
   }
 
   // Clear cart
-  async clearCart(customerId) {
-    await pool.query(`DELETE FROM cartitem WHERE customer_id = $1`, [
+  async clearCart(customerId, client = null) {
+    const db = client || pool;
+    await db.query(`DELETE FROM cartitem WHERE customer_id = $1`, [
       customerId,
     ]);
+  }
+
+  async claimStripeWebhookEvent(eventId, eventType, client) {
+    const result = await client.query(
+      `INSERT INTO stripe_webhook_events (event_id, event_type)
+       VALUES ($1, $2)
+       ON CONFLICT (event_id) DO NOTHING
+       RETURNING event_id`,
+      [eventId, eventType],
+    );
+    return result.rowCount === 1;
   }
 }
 

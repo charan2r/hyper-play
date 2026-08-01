@@ -1,6 +1,5 @@
 // Order status
 const ORDER_STATUS = {
-  CART: "CART",
   PENDING_PAYMENT: "PENDING_PAYMENT",
   PAID: "PAID",
   ASSIGNED: "ASSIGNED",
@@ -42,12 +41,6 @@ const INVENTORY_RESERVATION_STATUS = {
 
 // Valid transitions map
 const VALID_TRANSITIONS = {
-  // Order created, Stripe session not yet created
-  [ORDER_STATUS.CART]: [
-    ORDER_STATUS.PENDING_PAYMENT, // checkout initiated → Stripe session created
-    ORDER_STATUS.CANCELLED, // customer abandons cart order
-  ],
-
   // Stripe session created, awaiting payment
   [ORDER_STATUS.PENDING_PAYMENT]: [
     ORDER_STATUS.PAID, // Stripe webhook: payment success
@@ -108,10 +101,8 @@ const ROLE_ALLOWED_TRANSITIONS = {
   // Manufacturer portal
   manufacturer: [ORDER_STATUS.IN_PRODUCTION, ORDER_STATUS.PACKED],
 
-  // Customer can only initiate checkout. cannot cancel
-  customer: [
-    ORDER_STATUS.PENDING_PAYMENT, // initiates checkout from CART
-  ],
+  // Customers do not directly transition persisted order state.
+  customer: [],
 };
 
 // Guard functions

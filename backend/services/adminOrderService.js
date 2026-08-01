@@ -91,23 +91,22 @@ class AdminOrderService {
     assertRoleCanTransition("admin", status);
 
     // Enforce state machine transition
-    const order = await orderRepository.transitionStatus(
-      orderId,
-      status,
-      "admin",
-      adminId,
-      note,
-    );
+    return orderRepository.withTransaction(async (client) => {
+      const order = await orderRepository.transitionStatus(
+        orderId,
+        status,
+        "admin",
+        adminId,
+        note,
+        client,
+      );
 
-    if (!order) {
-      throw new Error("Order not found");
-    }
+      if (status === ORDER_STATUS.CANCELLED) {
+        await orderRepository.releaseInventory(orderId, client);
+      }
 
-    if (status === ORDER_STATUS.CANCELLED) {
-      await orderRepository.releaseInventory(orderId);
-    }
-
-    return order;
+      return order;
+    });
   }
 }
 

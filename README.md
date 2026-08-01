@@ -20,7 +20,7 @@ Hyper Play is a full-stack sports-commerce platform for customers, administrator
 | Customer app          | React 19, React Router, Vite, Tailwind CSS           |
 | Operations app        | React 19, React Router, Vite, Tailwind CSS, Radix UI |
 | API                   | Node.js 20, Express 5, Joi, JWT, bcrypt              |
-| Data and integrations | PostgreSQL 15, Stripe, Amazon S3                     |
+| Data and integrations | PostgreSQL 15, TypeORM migrations, Stripe, Amazon S3 |
 | Delivery              | Docker, Docker Compose, Nginx, Vercel SPA rewrites   |
 
 ## Architecture

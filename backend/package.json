@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "migration:run": "typeorm migration:run -d config/typeorm-datasource.js",
+    "migration:revert": "typeorm migration:revert -d config/typeorm-datasource.js",
+    "migration:show": "typeorm migration:show -d config/typeorm-datasource.js"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +28,8 @@
     "multer-s3": "^3.0.1",
     "pdfkit": "^0.17.1",
     "pg": "^8.16.3",
-    "stripe": "^18.5.0"
+    "reflect-metadata": "^0.2.2",
+    "stripe": "^18.5.0",
+    "typeorm": "^0.3.30"
   }
 }

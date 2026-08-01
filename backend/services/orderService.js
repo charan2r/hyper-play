@@ -161,14 +161,21 @@ class OrderService {
   }
 
   async processPaymentSuccess(orderId) {
-    await this.updatePaymentStatus(orderId, PAYMENT_STATUS.PAID);
-    return await orderRepository.transitionStatus(
-      orderId,
-      ORDER_STATUS.PAID,
-      "system",
-      null,
-      "Payment confirmed",
-    );
+    return orderRepository.withTransaction(async (client) => {
+      await orderRepository.updatePaymentStatus(
+        orderId,
+        PAYMENT_STATUS.PAID,
+        client,
+      );
+      return orderRepository.transitionStatus(
+        orderId,
+        ORDER_STATUS.PAID,
+        "system",
+        null,
+        "Payment confirmed",
+        client,
+      );
+    });
   }
 }
 

@@ -1,13 +1,13 @@
 const orderRepository = require("../repositories/orderRepository");
-const adminOrderService = require("./adminOrderService");
 const { ORDER_STATUS, PAYMENT_STATUS } = require("./orderState");
 const Stripe = require("stripe");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 class PaymentService {
-  async handleCheckoutComplete(session) {
-    const orderId = session.metadata.order_id;
+  async handleCheckoutComplete(event) {
+    const session = event.data.object;
+    const orderId = session.metadata?.order_id;
 
     if (!orderId) {
       console.error("No order_id in session metadata");
@@ -20,46 +20,70 @@ class PaymentService {
     }
 
     try {
-      // Update payment record in payments table with Stripe payment intent ID
-      if (session.payment_intent) {
-        await orderRepository.updatePaymentByOrderId(
+      return await orderRepository.withTransaction(async (client) => {
+        const claimed = await orderRepository.claimStripeWebhookEvent(
+          event.id,
+          event.type,
+          client,
+        );
+        if (!claimed) {
+          return { success: true, orderId, duplicate: true };
+        }
+
+        const payment = await orderRepository.updatePaymentByOrderId(
           orderId,
           PAYMENT_STATUS.PAID,
           session.payment_intent,
+          client,
         );
-      }
+        if (!payment) {
+          throw new Error(`Payment record for order ${orderId} not found`);
+        }
 
-      // Transition order
-      await orderRepository.transitionStatus(
-        orderId,
-        ORDER_STATUS.PAID,
-        "system",
-        null,
-        "Payment confirmed via Stripe webhook",
-      );
-
-      // Update payment status
-      await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.PAID);
-
-      // Confirm inventory reservation
-      await orderRepository.confirmInventory(orderId);
-
-      // Auto-assign manufacturer 
-      try {
-        await adminOrderService.autoAssignManufacturer(orderId);
-      } catch (assignErr) {
-        console.error(
-          `Failed to auto-assign order ${orderId}:`,
-          assignErr.message,
+        await orderRepository.transitionStatus(
+          orderId,
+          ORDER_STATUS.PAID,
+          "system",
+          null,
+          "Payment confirmed via Stripe webhook",
+          client,
         );
-      }
+        await orderRepository.updatePaymentStatus(
+          orderId,
+          PAYMENT_STATUS.PAID,
+          client,
+        );
+        await orderRepository.confirmInventory(orderId, client);
 
-      // Clear customer's cart
-      const customerId = session.metadata.customer_id;
-      if (customerId) {
-        await orderRepository.clearCart(customerId);
-      }
-      return { success: true, orderId };
+        const manufacturer =
+          await orderRepository.findAvailableManufacturer(client);
+        if (manufacturer) {
+          await orderRepository.createManufacturingAssignment(
+            orderId,
+            manufacturer.id,
+            client,
+          );
+          await orderRepository.transitionStatus(
+            orderId,
+            ORDER_STATUS.ASSIGNED,
+            "system",
+            null,
+            `Auto-assigned to manufacturer: ${manufacturer.name}`,
+            client,
+          );
+        }
+
+        const customerId = session.metadata?.customer_id;
+        if (customerId) {
+          await orderRepository.clearCart(customerId, client);
+        }
+
+        return {
+          success: true,
+          orderId,
+          manufacturerId: manufacturer?.id || null,
+        };
+      });
     } catch (error) {
       console.error(`Error processing payment for order ${orderId}:`, error);
       throw error;
@@ -70,21 +94,46 @@ class PaymentService {
     const paymentIntent = event.data.object;
     const orderId = paymentIntent.metadata?.order_id;
 
-    if (orderId) {
-      await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.FAILED);
-      // Release inventory reservations
-      await orderRepository.releaseInventory(orderId);
-      // Transition order
+    if (!orderId) {
+      return { success: true, orderId: null, note: "Missing order_id" };
+    }
+
+    return orderRepository.withTransaction(async (client) => {
+      const claimed = await orderRepository.claimStripeWebhookEvent(
+        event.id,
+        event.type,
+        client,
+      );
+      if (!claimed) {
+        return { success: true, orderId, duplicate: true };
+      }
+
+      const payment = await orderRepository.updatePaymentByOrderId(
+        orderId,
+        PAYMENT_STATUS.FAILED,
+        paymentIntent.id,
+        client,
+      );
+      if (!payment) {
+        throw new Error(`Payment record for order ${orderId} not found`);
+      }
+      await orderRepository.updatePaymentStatus(
+        orderId,
+        PAYMENT_STATUS.FAILED,
+        client,
+      );
+      await orderRepository.releaseInventory(orderId, client);
       await orderRepository.transitionStatus(
         orderId,
         ORDER_STATUS.CANCELLED,
         "system",
         null,
         "Payment failed via Stripe",
+        client,
       );
-    }
 
-    return { success: true, orderId };
+      return { success: true, orderId };
+    });
   }
 
 
@@ -103,7 +152,7 @@ class PaymentService {
     }
 
     if (event.type === "checkout.session.completed") {
-      return await this.handleCheckoutComplete(event.data.object);
+      return await this.handleCheckoutComplete(event);
     }
 
     if (event.type === "payment_intent.payment_failed") {

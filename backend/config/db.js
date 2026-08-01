@@ -8,12 +8,4 @@ const pool = new Pool({
   },
 });
 
-pool.connect((err) => {
-  if (err) {
-    console.error("Database connection error:", err.stack);
-  } else {
-    console.log("Connected to the database");
-  }
-});
-
 module.exports = pool;
