@@ -1,11 +1,11 @@
 function getRedisConnection(maxRetriesPerRequest = 1) {
   if (!process.env.REDIS_URL) {
-    throw new Error("REDIS_URL environment variable is required");
+    throw new Error("REDIS_URL is required");
   }
 
   const url = new URL(process.env.REDIS_URL);
   if (!["redis:", "rediss:"].includes(url.protocol)) {
-    throw new Error("REDIS_URL must use the redis:// or rediss:// protocol");
+    throw new Error("REDIS_URL is not a valid Redis URL");
   }
 
   return {

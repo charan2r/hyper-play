@@ -2,6 +2,8 @@ const {
   isNotificationEvent,
   NOTIFICATION_EVENT_TYPES,
 } = require("./notificationContract");
+const brevoEmailProvider = require("./brevoEmailProvider");
+const { createPaymentSucceededEmail } = require("./paymentSucceededEmail");
 
 class NotificationService {
   async handle(event) {
@@ -11,24 +13,30 @@ class NotificationService {
 
     switch (event.eventType) {
       case NOTIFICATION_EVENT_TYPES.PAYMENT_SUCCEEDED:
-        this.logPaymentSucceeded(event);
+        await this.sendPaymentSucceeded(event);
         return;
       default:
         throw new Error(`Unsupported notification event: ${event.eventType}`);
     }
   }
 
-  logPaymentSucceeded(event) {
+  async sendPaymentSucceeded(event) {
+    const email = createPaymentSucceededEmail(event);
+    const result = await brevoEmailProvider.send({
+      to: event.recipient.email,
+      ...email,
+      eventId: event.eventId,
+      orderId: event.order.id,
+    });
+
     console.info(
-      "Payment success notification ready:",
+      "Payment success email accepted by Brevo:",
       JSON.stringify({
         eventId: event.eventId,
         eventType: event.eventType,
         recipient: this.maskEmail(event.recipient.email),
         orderId: event.order.id,
-        total: event.order.total,
-        currency: event.order.currency,
-        status: event.order.status,
+        brevoMessageId: result.emailId,
       }),
     );
   }

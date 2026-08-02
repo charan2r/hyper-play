@@ -1,5 +1,8 @@
-const { Worker } = require("bullmq");
+const { UnrecoverableError, Worker } = require("bullmq");
 const notificationService = require("../notifications/notificationService");
+const {
+  PermanentNotificationError,
+} = require("../notifications/notificationErrors");
 const {
   NOTIFICATION_QUEUE_NAME,
 } = require("../notifications/notificationContract");
@@ -21,11 +24,18 @@ class NotificationWorker {
             `Job name '${job.name}' does not match event type '${job.data?.eventType}'`,
           );
         }
-        await notificationService.handle(job.data);
+        try {
+          await notificationService.handle(job.data);
+        } catch (error) {
+          if (error instanceof PermanentNotificationError) {
+            throw new UnrecoverableError(error.message);
+          }
+          throw error;
+        }
       },
       {
         connection: getRedisConnection(null),
-        concurrency: Number(process.env.NOTIFICATION_WORKER_CONCURRENCY || 5),
+        concurrency: Number(process.env.NOTIFICATION_WORKER_CONCURRENCY),
       },
     );
 
